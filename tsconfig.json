@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "paths": {
+      "@interfaces/*": ["interfaces/*"],
+      "@services/*": ["services/*"],
+    },
+    "target": "es6",
+    "declaration": true,
+    "declarationDir": "./dist",
+    "experimentalDecorators": true,
+    "esModuleInterop": true,
+    "outDir": "./dist",
+    "lib": ["es6", "dom"],
+    "strict": true
+  },
+  "include": ["src/**/*"]
+}

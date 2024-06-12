@@ -1,0 +1,16 @@
+{
+  "name": "arcnet-tef",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/arcnet-tef-lib.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "ng-packagr -p ng-package.json"
+  },
+  "author": "Samuel Bertoni",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.14.2",
+    "ng-packagr": "^18.0.0"
+  }
+}
