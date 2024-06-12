@@ -1,5 +1,5 @@
 import { IStartTransaction } from "../../interfaces";
 
-export function start(data: IStartTransaction) {
+export function StartTransaction(data: IStartTransaction) {
     return 'START TRANSACTION';
 }
