@@ -1,10 +1,8 @@
 {
   "name": "arcnet-tef",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Integração e uso de métodos e funcionalidades via CliSiTef para pagamentos e transações utilizando PinPad.",
-  "dependencies": {},
-  "peerDependencies": {},
-  "main": "dist/arcnet-tef-lib.js",
+  "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "private": false,
   "scripts": {
@@ -14,14 +12,15 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MukaDeveloper/Arcnet-TEF.git"
-  },  
+  },
   "author": "Samuel Bertoni",
   "license": "MIT",
   "bugs": {
-      "url": "https://github.com/MukaDeveloper/Arcnet-TEF/issues"
+    "url": "https://github.com/MukaDeveloper/Arcnet-TEF/issues"
   },
   "homepage": "https://github.com/MukaDeveloper/Arcnet-TEF#readme",
   "devDependencies": {
+    "@types/jquery": "^3.5.30",
     "@types/node": "^20.14.2",
     "ng-packagr": "^18.0.0"
   }
