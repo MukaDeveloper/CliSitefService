@@ -1,13 +1,11 @@
-import { GlobalConfig } from "./utils";
-import { EventEmitter } from "events";
+const EventEmitter = require('events');
 
 export class BaseService extends EventEmitter {
-    private globalConfig = new GlobalConfig();
-    protected agente_uri: string;
+    protected agenteUri: string;
 
     constructor() {
         super();
-        this.agente_uri = this.globalConfig.agente_uri;
+        this.agenteUri = 'https://127.0.0.1/agente/clisitef';
     }
 
     public sendEmitter(status: number, message: string) {

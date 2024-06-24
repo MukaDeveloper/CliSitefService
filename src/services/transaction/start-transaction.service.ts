@@ -1,57 +1,137 @@
-import { IStartTransaction } from "../../interfaces";
+const qs = require('qs');
+import { IContinueTransaction, IStartTransaction, IStartTransactionResponse } from "../../interfaces";
 import { BaseService } from "../../shared/base";
-import { ContinueTransaction } from "./continue-transaction.service";
+import axios, { AxiosError } from "axios";
+import { Agent } from 'https';
+import ContinueTransaction from "./continue-transaction.service";
 
-export class StartTransaction extends BaseService {
-    
-    constructor(
-        private readonly continueTransaction: ContinueTransaction,
-    ) {
-        super();
-    }
+export default class StartTransaction extends BaseService {
+  constructor() {
+    super();
+  }
 
-    async execute(transaction: IStartTransaction) {
+  async execute(transaction: IStartTransaction): Promise<any> {
+    /**
+     * Comunicação com o cliente inicializador da transação
+     */
+    this.sendEmitter(-1, "Iniciando transação...");
+
+    /**
+     * Comunicação com o agenteCliSiTef
+     */
+    try {
+      /**
+       * Requisição POST para o agenteCliSiTef
+       */
+      const res = await axios.post<any>(
+        this.agenteUri + "/startTransaction",
+        qs.stringify(transaction), 
+        {
+          httpsAgent: new Agent({ rejectUnauthorized: false }),
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        }
+      );
+      const response = res?.data as IStartTransactionResponse;
+      if (response) {
         /**
-         * Comunicação com o cliente inicializador da transação
+         * Retorno do estado do serviço
+         *
+         * (0 - OK; 1 - NOK)
+         * serviceStatus;
+         *
+         * (Recebe somente em caso do estado do serviço ser 1)
+         * serviceMessage;
+         *
+         * (Resultado de resposta. Caso seja 10000, procede-se continuação da transação)
+         * clisitefStatus;
+         *
+         * (Identificação da sessão)
+         * sessionId;
          */
-        this.sendEmitter(-1, 'Iniciando transação...');
-
-        /**
-         * Comunicação com o agenteCliSiTef
-         */
-        $.ajax({
-        	url: this.agente_uri + "/startTransaction",
-		    type:"post",
-    		data: jQuery.param(transaction),
-	    }).done((res) => {
+        if (response.serviceStatus === 0) {
+          this.sendEmitter(0, "Conectando...");
+          if (response.clisitefStatus === 10000) {
             /**
-             * Retorno do estado do serviço
-             * 
-             * (0 - OK; 1 - NOK)
-             * serviceStatus;
-             * 
-             * (Recebe somente em caso do estado do serviço ser 1)
-             * serviceMessage;
-             * 
-             * (Resultado de resposta. Caso seja 10000, procede-se continuação da transação)
-             * clisitefStatus;
-             * 
-             * (Identificação da sessão)
-             * sessionId;
+             * Continua a transação com o identificador de sessão;
              */
-            if (res.serviceStatus === 0) {
-                this.sendEmitter(0, 'Conectando...');
-                if (res.clisitefStatus === 10000) {
-                    /**
-                     * Continua a transação com o identificador de sessão;
-                     */
-                    this.continueTransaction.execute(res.sessionId);
-                } else {
-                    this.sendEmitter(res.clisitefStatus, 'Ocorreu um erro durante a transação.');
-                }
-            } else {
-                this.sendEmitter(1, res.serviceMessage);
-            }
-        })
+            const continueTef = new ContinueTransaction();
+            this.sendEmitter(response.clisitefStatus, "Continuando...");
+            /**
+             * É necessário instanciar a continuação da transação para cada
+             * vez que isso ocorrer;
+             */
+            const continueObj = {
+              sessionId: response.sessionId,
+              data: "",
+              continue: 0,
+            } as IContinueTransaction;
+            continueTef.execute(continueObj);
+          } else {
+            /**
+             * Retorno de erro caso o estado seja diferente de 10000
+             */
+            this.sendEmitter(
+              response.clisitefStatus,
+              "[STTN10K] Ocorreu um erro durante a transação."
+            );
+            throw new Error(`[STTN10K] Ocorreu um erro durante a transação.`);
+          }
+        } else {
+          /**
+           * Retorno de erro caso o estado do serviço seja diferente de 0
+           */
+          this.sendEmitter(1, response.serviceMessage || "Erro ao iniciar transação.");
+        }
+        return response;
+      } else {
+        /**
+         * Retorno de erro caso não haja resposta válida do Axios
+         */
+        this.sendEmitter(1, `[AXS404] Ocorreu um erro durante a transação.`);
+        throw new Error(`[AXS404] Ocorreu um erro durante a transação.`);
+      }
+    } catch (error: any) {
+      /**
+       * Retorno de erro do try/catch
+       */
+      const axiosError = error as AxiosError;
+      /**
+       * Função tipo guarda para verificar se o erro é um objeto com mensagem.
+       */
+      const isErrorWithMessage = (err: any): err is { message: string } =>
+        error.message !== undefined;
+
+      if (axiosError.response) {
+        console.error(
+          `Error response from server: ${axiosError.response.status}`
+        );
+
+        /**
+         * Verifique se a resposta de erro é um objeto com uma propriedade 'message'.
+         */
+        if (isErrorWithMessage(axiosError.response.data)) {
+          throw new Error(
+            `Erro ao iniciar transação: ${axiosError.response.data.message}`
+          );
+        } else {
+          /**
+           * Se não for um objeto com 'message', apenas stringify o que quer que seja.
+           */
+          throw new Error(
+            `Erro ao iniciar transação: ${JSON.stringify(
+              axiosError.response.data
+            )}`
+          );
+        }
+      } else if (axiosError.request) {
+        throw new Error(
+          `Nenhuma resposta do servidor ao iniciar transação: ${axiosError.message}`
+        );
+      } else {
+        throw new Error(
+          `Erro ao configurar a requisição ao iniciar transação: ${axiosError.message}`
+        );
+      }
     }
+  }
 }
