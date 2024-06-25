@@ -33,7 +33,7 @@ export interface IContinueTransaction {
      * até mesmo permite incluir novos pagamentos. Retorno válido apenas nas coletas
      * de valores e data de vencimento de um pagamento de contas.
      */
-    continue: number;
+    continue: string;
 }
 
 export interface IContinueTransactionResponse {

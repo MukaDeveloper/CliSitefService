@@ -1,8 +1,11 @@
-const qs = require('qs');
-import { IContinueTransaction, IStartTransaction, IStartTransactionResponse } from "../../interfaces";
+const qs = require("qs");
+import {
+  IStartTransaction,
+  IStartTransactionResponse,
+} from "../../interfaces";
 import { BaseService } from "../../shared/base";
 import axios, { AxiosError } from "axios";
-import { Agent } from 'https';
+import { Agent } from "https";
 import ContinueTransaction from "./continue-transaction.service";
 
 export default class StartTransaction extends BaseService {
@@ -14,8 +17,8 @@ export default class StartTransaction extends BaseService {
     /**
      * Comunicação com o cliente inicializador da transação
      */
-    this.sendEmitter(-1, "Iniciando transação...");
-
+    this.sendStatus("Iniciando transação...");
+    // console.log("Iniciando transação...");
     /**
      * Comunicação com o agenteCliSiTef
      */
@@ -25,10 +28,15 @@ export default class StartTransaction extends BaseService {
        */
       const res = await axios.post<any>(
         this.agenteUri + "/startTransaction",
-        qs.stringify(transaction), 
+        qs.stringify(transaction),
         {
           httpsAgent: new Agent({ rejectUnauthorized: false }),
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          headers: { 
+            "Content-Type": "application/x-www-form-urlencoded",
+            'Accept': '*/*',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive'
+          },
         }
       );
       const response = res?.data as IStartTransactionResponse;
@@ -48,46 +56,45 @@ export default class StartTransaction extends BaseService {
          * (Identificação da sessão)
          * sessionId;
          */
-        if (response.serviceStatus === 0) {
-          this.sendEmitter(0, "Conectando...");
-          if (response.clisitefStatus === 10000) {
-            /**
-             * Continua a transação com o identificador de sessão;
-             */
-            const continueTef = new ContinueTransaction();
-            this.sendEmitter(response.clisitefStatus, "Continuando...");
-            /**
-             * É necessário instanciar a continuação da transação para cada
-             * vez que isso ocorrer;
-             */
-            const continueObj = {
-              sessionId: response.sessionId,
-              data: "",
-              continue: 0,
-            } as IContinueTransaction;
-            continueTef.execute(continueObj);
-          } else {
-            /**
-             * Retorno de erro caso o estado seja diferente de 10000
-             */
-            this.sendEmitter(
-              response.clisitefStatus,
-              "[STTN10K] Ocorreu um erro durante a transação."
-            );
-            throw new Error(`[STTN10K] Ocorreu um erro durante a transação.`);
-          }
-        } else {
+        if (response.serviceStatus != 0) {
           /**
            * Retorno de erro caso o estado do serviço seja diferente de 0
            */
-          this.sendEmitter(1, response.serviceMessage || "Erro ao iniciar transação.");
+          // console.log(`[${response.serviceStatus}] Agente ocupado. \n ${response.serviceMessage}`);
+          throw new Error(response.serviceMessage);
+        } else if (response.clisitefStatus != 10000) {
+          /**
+           * Retorno de erro caso o estado da transação seja diferente de 10000
+           */
+          // console.log(`[${response.serviceStatus}] Retorno CliSiTef \n ${response.serviceMessage}`);
+          throw new Error(`${response.clisitefStatus} | Retorno CliSiTef [NOT10K]`);
+        } else {
+          /**
+           * Continua a transação com o identificador de sessão;
+           */
+          const continueTef = new ContinueTransaction();
+          /**
+           * É necessário instanciar a continuação da transação para cada
+           * vez que isso ocorrer;
+           */
+          const section = {
+            sessionId: response.sessionId,
+            continua: "0",
+            cupomFiscal: transaction.taxInvoiceNumber,
+            dataFiscal: transaction.taxInvoiceDate,
+            horaFiscal: transaction.taxInvoiceTime,
+            ret: [],
+          };
+          this.transaction$ = transaction;
+          // console.log("Acessando continue...");
+          await continueTef.execute("", section);
+          return response;
         }
-        return response;
       } else {
         /**
          * Retorno de erro caso não haja resposta válida do Axios
          */
-        this.sendEmitter(1, `[AXS404] Ocorreu um erro durante a transação.`);
+        // console.log(`[AXS404] Ocorreu um erro durante a transação.`);
         throw new Error(`[AXS404] Ocorreu um erro durante a transação.`);
       }
     } catch (error: any) {

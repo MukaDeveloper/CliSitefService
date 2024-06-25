@@ -16,7 +16,7 @@ export interface IStartTransaction {
      *
      * EXEMPLO: 12345678
      */
-    storeId: number;
+    storeId: string;
     /**
      * IDENTIFICAÇÃO DO CAIXA (PDV) - Número interno do caixa na loja
      * Texto
@@ -37,7 +37,7 @@ export interface IStartTransaction {
      * 3 - Dinheiro
      * 4 - Cartão de Crédito ou Múltiplas Formas de Pagamento
      */
-    functionalId: number;
+    functionalId: string;
     /**
      * VALOR A SER PAGO - Valor da transação
      * (Valor decimal contendo o separador ",". Deve ser passado com 2 (duas)
@@ -46,25 +46,25 @@ export interface IStartTransaction {
      *
      * EXEMPLO: 10,00
      */
-    trnAmount: number;
+    trnAmount: string;
     /**
      * NÚMERO CUPOM FISCAL - Número do Cupom Fiscal correspondente à venda
      *
      * EXEMPLO: 1234
      */
-    taxInvoiceNumber: number;
+    taxInvoiceNumber: string;
     /**
      * DATA FISCAL - Data fiscal no formato AAAAMMDD
      *
      * EXEMPLO: 20240612
      */
-    taxInvoiceDate: number;
+    taxInvoiceDate: string;
     /**
      * HORA FISCAL - Hora fiscal no formato HHMMSS
      *
      * EXEMPLO: 145036
      */
-    taxInvoiceTime: number;
+    taxInvoiceTime: string;
     /**
      * OPERADOR DE CAIXA - Identificação do operador de caixa
      *
