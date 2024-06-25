@@ -50,22 +50,17 @@ export default class FinishTransaction extends BaseService {
       const response = res?.data;
       if (response) {
         if (response.serviceStatus != 0) {
-          this.sendError(response.serviceMessage || "Reload");
-          console.log("Aqui ele dá o reload na página");
+          // console.log("Aqui ele dá o reload na página");
         } else {
           if (exitFlow) {
-            this.sendMessage(
-              `Estado do serviço: ${response.serviceStatus}\nEstado CliSiTef: ${response.clisitefStatus}`
-            );
             this.sendStatus("Transação finalizada.");
-            console.log(`Estado do serviço: ${response.serviceStatus}\nEstado CliSiTef: ${response.clisitefStatus}`);
+            // console.log(`Estado do serviço: ${response.serviceStatus}\nEstado CliSiTef: ${response.clisitefStatus}`);
           }
         }
         return response;
       }
     } catch (error: any) {
-      this.sendError(error?.message);
-      throw new Error(error);
+      throw new Error(error?.message);
     }
   }
 }
