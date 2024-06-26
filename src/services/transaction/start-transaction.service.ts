@@ -59,7 +59,7 @@ export default class StartTransaction extends BaseService {
            */
           throw new Error(`${response.clisitefStatus} | Retorno CliSiTef [NOT10K] | ${response.serviceMessage}`);
         } else {
-          this.sendStatus("Iniciando transação...");
+          this.sendStatus(1, "Iniciando transação...");
           /**
            * Retorna o sucesso do início da transação;
            *

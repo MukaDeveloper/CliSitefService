@@ -58,7 +58,7 @@ export default class FinishTransaction extends BaseService {
       const response = res?.data;
       if (response) {
         if (exitFlow) {
-          this.sendStatus("Transação finalizada.");
+          this.sendStatus(1, "Transação finalizada.");
         }
 
         return response;

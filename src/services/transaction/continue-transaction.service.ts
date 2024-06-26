@@ -36,7 +36,7 @@ export default class ContinueTransaction extends BaseService {
       const response = res?.data as IContinueTransactionResponse;
       if (response) {
         if (response.commandId != 0 && response.data != "") {
-            this.sendStatus(response.data);
+            this.sendStatus(1, response.data);
         }
         if (response.serviceStatus != 0) {
           throw new Error(response.serviceMessage || "");
@@ -58,11 +58,11 @@ export default class ContinueTransaction extends BaseService {
         switch (response.commandId) {
           case 0:
             if (response.fieldId == 121) {
-              this.sendStatus("Cupom Estabelecimento: \n" + response?.data);
+              this.sendStatus(1, "Cupom Estabelecimento: \n" + response?.data);
               this.sendApproved();
             }
             if (response.fieldId == 122) {
-              this.sendStatus("Cupom Cliente: \n" + response?.data);
+              this.sendStatus(1, "Cupom Cliente: \n" + response?.data);
             }
             this.execute("");
             break;

@@ -1,6 +1,6 @@
-import { IStartTransaction } from "../../interfaces";
-import ContinueTransaction from "./continue-transaction.service";
-import StartTransaction from "./start-transaction.service";
+import { IStartTransaction } from '../interfaces';
+import ContinueTransaction from './transaction/continue-transaction.service';
+import StartTransaction from './transaction/start-transaction.service';
 
 export class TefService {
   private startTransaction: StartTransaction;
@@ -22,7 +22,7 @@ export class TefService {
     if (response?.sessionId) {
       const section = {
         sessionId: response.sessionId,
-        continua: "0",
+        continua: '0',
         cupomFiscal: data.taxInvoiceNumber,
         dataFiscal: data.taxInvoiceDate,
         horaFiscal: data.taxInvoiceTime,
@@ -32,10 +32,10 @@ export class TefService {
       };
       this.continueTransaction.transaction$ = this.startTransaction.transaction$;
       this.continueTransaction.section$ = section;
-      await this.continue("");
+      await this.continue('');
       return response;
     } else {
-      return new Error("Erro ao iniciar transação");
+      return new Error('Erro ao iniciar transação');
     }
   }
 

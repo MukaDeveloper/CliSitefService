@@ -1,6 +1,6 @@
 {
   "name": "arcnet-tef",
-  "version": "1.0.31",
+  "version": "1.0.32",
   "description": "Integração e uso de métodos e funcionalidades via CliSiTef para pagamentos e transações utilizando PinPad.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

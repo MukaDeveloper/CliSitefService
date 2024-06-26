@@ -1,4 +1,5 @@
 import { EventEmitter } from "events";
+import { ISendStatus } from "../interfaces/i-send-status";
 
 export class BaseService {
     protected agenteUri: string;
@@ -11,9 +12,9 @@ export class BaseService {
         this.emitter = new EventEmitter();
     }
 
-    public sendStatus(status: string) {
-        if (status === (null || "")) return;
-        this.emitter.emit('transactionStatus', status);
+    public sendStatus(status: number, message: string) {
+        if (message === (null || "")) return;
+        this.emitter.emit('transactionStatus', { status, message } as ISendStatus);
     }
     public listenStatus(callback: (res: any) => void) {
         this.emitter.on('transactionStatus', callback);
