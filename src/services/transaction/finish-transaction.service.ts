@@ -59,7 +59,6 @@ export default class FinishTransaction extends BaseService {
       if (response) {
         if (exitFlow) {
           this.sendStatus("Transação finalizada.");
-          // console.log(`Estado do serviço: ${response.serviceStatus}\nEstado CliSiTef: ${response.clisitefStatus}`);
         }
 
         return response;

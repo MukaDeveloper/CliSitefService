@@ -35,9 +35,8 @@ export default class ContinueTransaction extends BaseService {
       );
       const response = res?.data as IContinueTransactionResponse;
       if (response) {
-        // && response.data != ""
-        if (response.commandId != 0) {
-            this.sendStatus(`${response.commandId} ${response.data}`);
+        if (response.commandId != 0 && response.data != "") {
+            this.sendStatus(response.data);
         }
         if (response.serviceStatus != 0) {
           throw new Error(response.serviceMessage || "");
@@ -45,11 +44,9 @@ export default class ContinueTransaction extends BaseService {
 
         if (response.clisitefStatus != 10000) {
           if (response.clisitefStatus == 0) {
-            this.sendApproved();
             const finish = new FinishTransaction();
             await finish.execute(1, false, false, section, this.transaction$);
           }
-          // console.log(`Fim - Retorno: ${response.clisitefStatus}`);
           return `Fim - Retorno: ${response.clisitefStatus}`;
         }
 
@@ -67,6 +64,7 @@ export default class ContinueTransaction extends BaseService {
             if (response.fieldId == 122) {
               this.sendStatus("Cupom Cliente: \n" + response?.data);
             }
+            this.sendApproved();
             this.execute("");
             break;
           case 1:

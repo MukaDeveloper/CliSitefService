@@ -32,31 +32,31 @@ export interface IStartTransaction {
      * FORMA DE PAGAMENTO - Conforme tabela "Códigos de Funções"
      * Número
      *
-     * 1 - Cheque (SEM FUNCIONAMENTO)
-     * 2 - Cartão de Débito
-     * 3 - Cartão de Crédito
-     * 4 - Cartão Private (REDE NÃO HABILITADA)
-     * 5 - Confirmação de Pre-autorização
+     * 1 - Cheque (SEM FUNCIONAMENTO);
+     * 2 - Cartão de Débito;
+     * 3 - Cartão de Crédito;
+     * 4 - Cartão Private (REDE NÃO HABILITADA);
+     * 5 - Confirmação de Pre-autorização.
      */
     functionalId: string;
     /**
      * TIPO DE PAGAMENTO
      * 
-     * Caso 'functionalId' for 2 (Débito)
+     * Caso 'functionalId' for 2 (Débito):
      *      - 1: A Vista;
      *      - 2: Compra e Saque;
      *      - 3: Consulta Parcelas CDC;
-     *      - 4: CDC;
+     *      - 4: CDC.
      * 
-     * Caso 'functionalId' for 3 (Crédito)
+     * Caso 'functionalId' for 3 (Crédito):
      *      - 1: A Vista;
      *      - 2: Parcelado pelo Estabelecimento;
      *      - 3: Parcelado pela Administradora;
-     *      - 4: Consulta parcelamento;
+     *      - 4: Consulta parcelamento.
      * 
-     * Caso 'functionalId' for 5 (Pre-autorização)
+     * Caso 'functionalId' for 5 (Pre-autorização):
      *      - 1: A Vista;
-     *      - 2: Parcelado pelo Estabelecimento;
+     *      - 2: Parcelado pelo Estabelecimento.
      */
     functionalType: string;
     /**
@@ -111,8 +111,8 @@ export interface IStartTransactionResponse {
      * STATUS DO SERVIÇO - Número que indica o estado de consumo.
      * Número
      *
-     * 0 - OK
-     * 1 - NÃO OK
+     * 0 - OK;
+     * 1 - NÃO OK.
      */
     serviceStatus: number;
     /**
