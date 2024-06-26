@@ -1,19 +1,27 @@
-const EventEmitter = require('events');
+import { EventEmitter } from "events";
 
-export class BaseService extends EventEmitter {
+export class BaseService {
     protected agenteUri: string;
+    private emitter: EventEmitter;
     public transaction$: any = {};
+    public section$: any = {};
 
     constructor() {
-        super();
         this.agenteUri = 'https://127.0.0.1/agente/clisitef';
+        this.emitter = new EventEmitter();
     }
 
-    public async sendStatus(status: string) {
-        await this.emit('transactionStatus', status);
+    public sendStatus(status: string) {
+        if (status === (null || "")) return;
+        this.emitter.emit('transactionStatus', status);
     }
-
-    public async onSendStatus(callback: (res: any) => void) {
-        await this.on('transactionStatus', callback);
+    public onSendStatus(callback: (res: any) => void) {
+        this.emitter.on('transactionStatus', callback);
+    }
+    public sendResponseRequest(response: any) {
+        this.emitter.emit('transactionResponse', response);
+    }
+    public onSendResponseRequest(callback: (response: any) => void) {
+        this.emitter.on('transactionResponse', callback);
     }
 }

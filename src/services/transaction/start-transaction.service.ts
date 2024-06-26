@@ -1,8 +1,5 @@
 const qs = require("qs");
-import {
-  IStartTransaction,
-  IStartTransactionResponse,
-} from "../../interfaces";
+import { IStartTransaction, IStartTransactionResponse } from "../../interfaces";
 import { BaseService } from "../../shared/base";
 import axios, { AxiosError } from "axios";
 import { Agent } from "https";
@@ -15,11 +12,6 @@ export default class StartTransaction extends BaseService {
 
   async execute(transaction: IStartTransaction): Promise<any> {
     /**
-     * Comunicação com o cliente inicializador da transação
-     */
-    await this.sendStatus("Iniciando transação...");
-    console.log("[0] Iniciando transação...");
-    /**
      * Comunicação com o agenteCliSiTef
      */
     try {
@@ -31,11 +23,11 @@ export default class StartTransaction extends BaseService {
         qs.stringify(transaction),
         {
           httpsAgent: new Agent({ rejectUnauthorized: false }),
-          headers: { 
+          headers: {
             "Content-Type": "application/x-www-form-urlencoded",
-            'Accept': '*/*',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive'
+            Accept: "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            Connection: "keep-alive",
           },
         }
       );
@@ -60,35 +52,20 @@ export default class StartTransaction extends BaseService {
           /**
            * Retorno de erro caso o estado do serviço seja diferente de 0
            */
-          // console.log(`[${response.serviceStatus}] Agente ocupado. \n ${response.serviceMessage}`);
-          throw new Error(response.serviceMessage);
+          throw new Error(`[${response.serviceStatus}] Agente ocupado. \n ${response.serviceMessage}`);
         } else if (response.clisitefStatus != 10000) {
           /**
            * Retorno de erro caso o estado da transação seja diferente de 10000
            */
-          // console.log(`[${response.serviceStatus}] Retorno CliSiTef \n ${response.serviceMessage}`);
-          throw new Error(`${response.clisitefStatus} | Retorno CliSiTef [NOT10K]`);
+          throw new Error(`${response.clisitefStatus} | Retorno CliSiTef [NOT10K] | ${response.serviceMessage}`);
         } else {
+          this.sendStatus("Iniciando transação...");
           /**
-           * Continua a transação com o identificador de sessão;
+           * Retorna o sucesso do início da transação;
+           *
+           * Alimenta a variável global com as informações da transação
            */
-          const continueTef = new ContinueTransaction();
-          /**
-           * É necessário instanciar a continuação da transação para cada
-           * vez que isso ocorrer;
-           */
-          const section = {
-            sessionId: response.sessionId,
-            continua: "0",
-            cupomFiscal: transaction.taxInvoiceNumber,
-            dataFiscal: transaction.taxInvoiceDate,
-            horaFiscal: transaction.taxInvoiceTime,
-            ret: [],
-            functionalId: transaction.functionalId,
-          };
           this.transaction$ = transaction;
-          // console.log("Acessando continue...");
-          await continueTef.execute("", section);
           return response;
         }
       } else {
@@ -109,37 +86,32 @@ export default class StartTransaction extends BaseService {
       const isErrorWithMessage = (err: any): err is { message: string } =>
         error.message !== undefined;
 
-      if (axiosError.response) {
-        console.error(
-          `Error response from server: ${axiosError.response.status}`
-        );
+      if (axiosError?.response) {
+        let message = `Error response from server: ${axiosError?.response.status}`;
+        console.error(message);
 
         /**
          * Verifique se a resposta de erro é um objeto com uma propriedade 'message'.
          */
-        if (isErrorWithMessage(axiosError.response.data)) {
-          throw new Error(
-            `Erro ao iniciar transação: ${axiosError.response.data.message}`
-          );
+        if (isErrorWithMessage(axiosError?.response.data)) {
+          message = `Erro ao iniciar transação: ${axiosError?.response.data.message}`;
+          console.error(message);
         } else {
           /**
            * Se não for um objeto com 'message', apenas stringify o que quer que seja.
            */
-          throw new Error(
-            `Erro ao iniciar transação: ${JSON.stringify(
-              axiosError.response.data
-            )}`
-          );
+          message = `Erro ao iniciar transação: ${JSON.stringify(
+            axiosError?.response.data
+          )}`;
+          console.error(message);
         }
-      } else if (axiosError.request) {
-        throw new Error(
-          `Nenhuma resposta do servidor ao iniciar transação: ${axiosError.message}`
-        );
+        return message;
+      } else if (axiosError?.request) {
+        console.error(`Nenhuma resposta do servidor ao iniciar transação: ${axiosError?.message}`);
       } else {
-        throw new Error(
-          `Erro ao configurar a requisição ao iniciar transação: ${axiosError.message}`
-        );
+        console.error(`Erro ao configurar a requisição ao iniciar transação: ${axiosError?.message}`);
       }
+      return axiosError?.message || error?.message || "Erro desconhecido";
     }
   }
 }

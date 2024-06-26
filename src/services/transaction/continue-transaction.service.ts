@@ -10,7 +10,7 @@ export default class ContinueTransaction extends BaseService {
     super();
   }
 
-  async execute(data: string, section: any) {
+  async execute(data: string) {
     /**
      * Comunicação com o agenteCliSiTef
      */
@@ -18,6 +18,7 @@ export default class ContinueTransaction extends BaseService {
       /**
        * Requisição POST para o agenteCliSiTef
        */
+      const section = this.section$;
       section.data = data;
       const res = await axios.post<any>(
         this.agenteUri + "/continueTransaction",
@@ -34,19 +35,17 @@ export default class ContinueTransaction extends BaseService {
       );
       const response = res?.data as IContinueTransactionResponse;
       if (response) {
-        if (response.commandId != 0) {
-            await this.sendStatus(response.data);
-             console.log(`[${response.commandId}] ${response?.data}`);
+        if (response.commandId != 0 && response.data != "") {
+            this.sendStatus(`${response.commandId} ${response.data}`);
         }
         if (response.serviceStatus != 0) {
-          // console.log("Erro serviceMessage =>", response.serviceMessage);
           throw new Error(response.serviceMessage || "");
         }
 
         if (response.clisitefStatus != 10000) {
           if (response.clisitefStatus == 0) {
             const finish = new FinishTransaction();
-            await finish.execute(1, false, false, section);
+            await finish.execute(1, false, false, section, this.transaction$);
           }
           // console.log(`Fim - Retorno: ${response.clisitefStatus}`);
           return `Fim - Retorno: ${response.clisitefStatus}`;
@@ -60,13 +59,13 @@ export default class ContinueTransaction extends BaseService {
         switch (response.commandId) {
           case 0:
             if (response.fieldId == 121) {
-              // console.log("Cupom Estabelecimento: \n" + response?.data);
+              this.sendStatus("Cupom Estabelecimento: \n" + response?.data);
             }
 
             if (response.fieldId == 122) {
-              // console.log("Cupom Cliente: \n" + response?.data);
+              this.sendStatus("Cupom Cliente: \n" + response?.data);
             }
-            this.execute("", section);
+            this.execute("");
             break;
           case 1:
           case 2:
@@ -78,22 +77,23 @@ export default class ContinueTransaction extends BaseService {
 			    case 13:
 			    case 14:
 			    case 16:
-            this.execute("", section);
+            this.execute("");
             break;
           case 20:
-            setTimeout(() => { this.execute("0", section)}, 2000);
+            this.sendResponseRequest(response?.data);
             break;
+            // setTimeout(() => { this.execute("0")}, 2000);
+            // break;
           case 22:
-            setTimeout(() => { this.execute("", section)}, 1000)
+            setTimeout(() => { this.execute("")}, 1000)
             break;
           case 23:
             const status = response?.data;
             if (lastStatus != status) {
-              // console.log(status);
               lastStatus = status;
             }
             setTimeout(() => {
-              this.execute("", section);
+              this.execute("");
             }, 1000);
             break;
           case 21:
@@ -104,10 +104,17 @@ export default class ContinueTransaction extends BaseService {
           case 34:
           case 35:
           case 38:
-            this.execute(section.functionalId, section);
+            if (response.commandId === 21) {
+              if (section.functionalId) {
+                this.execute(section.functionalId);
+              } else {
+                this.sendResponseRequest(response?.data);
+              }
+              break;
+            }
             break;
           default:
-            this.execute("", section);
+            this.execute("");
         }
       } else {
         throw new Error("Erro ao continuar transação");
@@ -124,36 +131,28 @@ export default class ContinueTransaction extends BaseService {
         error.message !== undefined;
 
       if (axiosError.response) {
-        console.error(
-          `Error response from server: ${axiosError.response.status}`
-        );
+        let message = `Error response from server: ${axiosError.response.status}`;
+        console.error(message);
 
         /**
          * Verifique se a resposta de erro é um objeto com uma propriedade 'message'.
          */
         if (isErrorWithMessage(axiosError.response?.data)) {
-          throw new Error(
-            `Erro ao continuar transação: ${axiosError.response?.data.message}`
-          );
+          message = `Erro ao continuar transação: ${axiosError.response?.data.message}`;
+          console.error(message);
         } else {
           /**
            * Se não for um objeto com 'message', apenas stringify o que quer que seja.
            */
-          throw new Error(
-            `Erro ao continuar transação: ${JSON.stringify(
-              axiosError.response?.data
-            )}`
-          );
+          message = `Erro ao continuar transação: ${JSON.stringify(axiosError.response?.data)}`
+          console.error(message);
         }
       } else if (axiosError.request) {
-        throw new Error(
-          `Nenhuma resposta do servidor ao continuar transação: ${axiosError.message}`
-        );
+        console.error(`Nenhuma resposta do servidor ao continuar transação: ${axiosError.message}`);
       } else {
-        throw new Error(
-          `Erro ao configurar a requisição ao continuar transação: ${axiosError.message}`
-        );
+        console.error(`Erro ao configurar a requisição ao continuar transação: ${axiosError.message}`);
       }
+      return axiosError?.message || error?.message || "Erro desconhecido";
     }
   }
 }

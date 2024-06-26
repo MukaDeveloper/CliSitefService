@@ -12,29 +12,31 @@ export default class FinishTransaction extends BaseService {
     confirm: number,
     resendParameters: boolean,
     exitFlow: boolean,
-    section: any
+    section: any,
+    transaction: any
   ): Promise<any> {
     const args: any = {
       confirm: `${confirm}`,
     };
 
+    console.log('> transaction$', transaction);
     if (resendParameters) {
-      args.sitefIp = `${this.transaction$.sitefIp}`;
-      args.storeId = `${this.transaction$.storeId}`;
-      args.terminalId = `${this.transaction$.terminalId}`;
-      args.taxInvoiceNumber = `${this.transaction$.taxInvoiceNumber}`;
-      args.taxInvoiceDate = `${this.transaction$.taxInvoiceDate}`;
-      args.taxInvoiceTime = `${this.transaction$.taxInvoiceTime}`;
+      args.sitefIp = `${transaction.sitefIp}`;
+      args.storeId = `${transaction.storeId}`;
+      args.terminalId = `${transaction.terminalId}`;
+      args.taxInvoiceNumber = `${transaction.taxInvoiceNumber}`;
+      args.taxInvoiceDate = `${transaction.taxInvoiceDate}`;
+      args.taxInvoiceTime = `${transaction.taxInvoiceTime}`;
     } else {
       args.sessionId = `${section.sessionId}`;
       args.taxInvoiceNumber = `${
-        section.taxInvoiceNumber || this.transaction$.taxInvoiceNumber
+        section.taxInvoiceNumber || transaction.taxInvoiceNumber
       }`;
       args.taxInvoiceDate = `${
-        section.taxInvoiceDate || this.transaction$.taxInvoiceDate
+        section.taxInvoiceDate || transaction.taxInvoiceDate
       }`;
       args.taxInvoiceTime = `${
-        section.taxInvoiceTime || this.transaction$.taxInvoiceTime
+        section.taxInvoiceTime || transaction.taxInvoiceTime
       }`;
     }
 
@@ -56,7 +58,7 @@ export default class FinishTransaction extends BaseService {
       const response = res?.data;
       if (response) {
         if (exitFlow) {
-          await this.sendStatus("Transação finalizada.");
+          this.sendStatus("Transação finalizada.");
           // console.log(`Estado do serviço: ${response.serviceStatus}\nEstado CliSiTef: ${response.clisitefStatus}`);
         }
 
