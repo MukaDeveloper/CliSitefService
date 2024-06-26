@@ -15,13 +15,14 @@ export class BaseService {
         if (status === (null || "")) return;
         this.emitter.emit('transactionStatus', status);
     }
-    public onSendStatus(callback: (res: any) => void) {
+    public listenStatus(callback: (res: any) => void) {
         this.emitter.on('transactionStatus', callback);
     }
-    public sendResponseRequest(response: any) {
-        this.emitter.emit('transactionResponse', response);
+
+    public sendApproved() {
+        this.emitter.emit('transactionApproved');
     }
-    public onSendResponseRequest(callback: (response: any) => void) {
-        this.emitter.on('transactionResponse', callback);
+    public getApproved(callback: () => void) {
+        this.emitter.on('transactionApproved', callback);
     }
 }

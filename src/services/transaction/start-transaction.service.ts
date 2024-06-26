@@ -72,7 +72,6 @@ export default class StartTransaction extends BaseService {
         /**
          * Retorno de erro caso não haja resposta válida do Axios
          */
-        // console.log(`[AXS404] Ocorreu um erro durante a transação.`);
         throw new Error(`[AXS404] Ocorreu um erro durante a transação.`);
       }
     } catch (error: any) {

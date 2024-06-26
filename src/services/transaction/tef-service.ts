@@ -28,6 +28,7 @@ export class TefService {
         horaFiscal: data.taxInvoiceTime,
         ret: [],
         functionalId: data.functionalId,
+        functionalType: data.functionalType,
       };
       this.continueTransaction.transaction$ = this.startTransaction.transaction$;
       this.continueTransaction.section$ = section;
@@ -55,8 +56,16 @@ export class TefService {
    * Método responsável por receber as respostas dos eventos
    * enviados pelos métodos de transação.
    */
-  on(callback: (status: string) => void) {
-    this.startTransaction.onSendStatus(callback);
-    this.continueTransaction.onSendStatus(callback);
+  recieveStatus(callback: (status: string) => void) {
+    this.startTransaction.listenStatus(callback);
+    this.continueTransaction.listenStatus(callback);
+  }
+
+  /**
+   * 
+   * Método responsável por receber as respostas de transações aprovadas
+   */
+  onApproved(callback: () => void) {
+    this.continueTransaction.getApproved(callback);
   }
 }

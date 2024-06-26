@@ -32,12 +32,33 @@ export interface IStartTransaction {
      * FORMA DE PAGAMENTO - Conforme tabela "Códigos de Funções"
      * Número
      *
-     * 1 - Cartão de Débito
-     * 2 - Cheque
-     * 3 - Dinheiro
-     * 4 - Cartão de Crédito ou Múltiplas Formas de Pagamento
+     * 1 - Cheque (SEM FUNCIONAMENTO)
+     * 2 - Cartão de Débito
+     * 3 - Cartão de Crédito
+     * 4 - Cartão Private (REDE NÃO HABILITADA)
+     * 5 - Confirmação de Pre-autorização
      */
     functionalId: string;
+    /**
+     * TIPO DE PAGAMENTO
+     * 
+     * Caso 'functionalId' for 2 (Débito)
+     *      - 1: A Vista;
+     *      - 2: Compra e Saque;
+     *      - 3: Consulta Parcelas CDC;
+     *      - 4: CDC;
+     * 
+     * Caso 'functionalId' for 3 (Crédito)
+     *      - 1: A Vista;
+     *      - 2: Parcelado pelo Estabelecimento;
+     *      - 3: Parcelado pela Administradora;
+     *      - 4: Consulta parcelamento;
+     * 
+     * Caso 'functionalId' for 5 (Pre-autorização)
+     *      - 1: A Vista;
+     *      - 2: Parcelado pelo Estabelecimento;
+     */
+    functionalType: string;
     /**
      * VALOR A SER PAGO - Valor da transação
      * (Valor decimal contendo o separador ",". Deve ser passado com 2 (duas)

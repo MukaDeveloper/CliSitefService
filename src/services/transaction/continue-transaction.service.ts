@@ -35,7 +35,8 @@ export default class ContinueTransaction extends BaseService {
       );
       const response = res?.data as IContinueTransactionResponse;
       if (response) {
-        if (response.commandId != 0 && response.data != "") {
+        // && response.data != ""
+        if (response.commandId != 0) {
             this.sendStatus(`${response.commandId} ${response.data}`);
         }
         if (response.serviceStatus != 0) {
@@ -44,6 +45,7 @@ export default class ContinueTransaction extends BaseService {
 
         if (response.clisitefStatus != 10000) {
           if (response.clisitefStatus == 0) {
+            this.sendApproved();
             const finish = new FinishTransaction();
             await finish.execute(1, false, false, section, this.transaction$);
           }
@@ -80,7 +82,7 @@ export default class ContinueTransaction extends BaseService {
             this.execute("");
             break;
           case 20:
-            this.sendResponseRequest(response?.data);
+            // this.sendResponseRequest(response?.data);
             break;
             // setTimeout(() => { this.execute("0")}, 2000);
             // break;
@@ -108,9 +110,16 @@ export default class ContinueTransaction extends BaseService {
               if (section.functionalId) {
                 this.execute(section.functionalId);
               } else {
-                this.sendResponseRequest(response?.data);
+                // this.sendResponseRequest(response?.data);
               }
               break;
+            }
+            if (response.commandId === 34) {
+              if (section.functionalType) {
+                this.execute(section.functionalType);
+              } else {
+                // this.sendResponseRequest(response?.data);
+              }
             }
             break;
           default:
