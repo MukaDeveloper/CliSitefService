@@ -47,7 +47,6 @@ export class TefService {
    * utilizado em casos de questionamentos do agente para usuário.
    */
   async continue(data: string): Promise<any> {
-    console.log("> continue", this.continueTransaction.section$);
     return await this.continueTransaction.execute(data);
   }
 

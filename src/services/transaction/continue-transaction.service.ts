@@ -59,12 +59,11 @@ export default class ContinueTransaction extends BaseService {
           case 0:
             if (response.fieldId == 121) {
               this.sendStatus("Cupom Estabelecimento: \n" + response?.data);
+              this.sendApproved();
             }
-
             if (response.fieldId == 122) {
               this.sendStatus("Cupom Cliente: \n" + response?.data);
             }
-            this.sendApproved();
             this.execute("");
             break;
           case 1:
