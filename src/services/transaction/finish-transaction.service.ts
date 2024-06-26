@@ -12,7 +12,7 @@ export default class FinishTransaction extends BaseService {
     confirm: number,
     resendParameters: boolean,
     exitFlow: boolean,
-    section: any,
+    section: any
   ): Promise<any> {
     const args: any = {
       confirm: `${confirm}`,
@@ -27,9 +27,15 @@ export default class FinishTransaction extends BaseService {
       args.taxInvoiceTime = `${this.transaction$.taxInvoiceTime}`;
     } else {
       args.sessionId = `${section.sessionId}`;
-      args.taxInvoiceNumber = `${section.taxInvoiceNumber || this.transaction$.taxInvoiceNumber}`;
-      args.taxInvoiceDate = `${section.taxInvoiceDate || this.transaction$.taxInvoiceDate}`;
-      args.taxInvoiceTime = `${section.taxInvoiceTime || this.transaction$.taxInvoiceTime}`;
+      args.taxInvoiceNumber = `${
+        section.taxInvoiceNumber || this.transaction$.taxInvoiceNumber
+      }`;
+      args.taxInvoiceDate = `${
+        section.taxInvoiceDate || this.transaction$.taxInvoiceDate
+      }`;
+      args.taxInvoiceTime = `${
+        section.taxInvoiceTime || this.transaction$.taxInvoiceTime
+      }`;
     }
 
     try {
@@ -38,25 +44,22 @@ export default class FinishTransaction extends BaseService {
         qs.stringify(args),
         {
           httpsAgent: new Agent({ rejectUnauthorized: false }),
-          headers: { 
+          headers: {
             "Content-Type": "application/x-www-form-urlencoded",
-            'Accept': '*/*',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive'
+            Accept: "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            Connection: "keep-alive",
           },
         }
       );
 
       const response = res?.data;
       if (response) {
-        if (response.serviceStatus != 0) {
-          // console.log("Aqui ele dá o reload na página");
-        } else {
-          if (exitFlow) {
-            this.sendStatus("Transação finalizada.");
-            // console.log(`Estado do serviço: ${response.serviceStatus}\nEstado CliSiTef: ${response.clisitefStatus}`);
-          }
+        if (exitFlow) {
+          await this.sendStatus("Transação finalizada.");
+          // console.log(`Estado do serviço: ${response.serviceStatus}\nEstado CliSiTef: ${response.clisitefStatus}`);
         }
+
         return response;
       }
     } catch (error: any) {

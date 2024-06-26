@@ -9,11 +9,11 @@ export class BaseService extends EventEmitter {
         this.agenteUri = 'https://127.0.0.1/agente/clisitef';
     }
 
-    public sendStatus(status: string) {
-        this.emit('transactionStatus', status);
+    public async sendStatus(status: string) {
+        await this.emit('transactionStatus', status);
     }
 
-    public onSendStatus(callback: (res: any) => void) {
-        this.on('transactionStatus', callback);
+    public async onSendStatus(callback: (res: any) => void) {
+        await this.on('transactionStatus', callback);
     }
 }

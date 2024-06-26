@@ -35,8 +35,8 @@ export default class ContinueTransaction extends BaseService {
       const response = res?.data as IContinueTransactionResponse;
       if (response) {
         if (response.commandId != 0) {
-            this.sendStatus(response.data);
-            //  console.log(`[${response.commandId}] ${response?.data}`);
+            await this.sendStatus(response.data);
+             console.log(`[${response.commandId}] ${response?.data}`);
         }
         if (response.serviceStatus != 0) {
           // console.log("Erro serviceMessage =>", response.serviceMessage);
@@ -78,8 +78,10 @@ export default class ContinueTransaction extends BaseService {
 			    case 13:
 			    case 14:
 			    case 16:
-          case 20:
             this.execute("", section);
+            break;
+          case 20:
+            setTimeout(() => { this.execute("0", section)}, 2000);
             break;
           case 22:
             setTimeout(() => { this.execute("", section)}, 1000)
@@ -91,7 +93,7 @@ export default class ContinueTransaction extends BaseService {
               lastStatus = status;
             }
             setTimeout(() => {
-              this.execute(response.data, section);
+              this.execute("", section);
             }, 1000);
             break;
           case 21:
@@ -102,7 +104,7 @@ export default class ContinueTransaction extends BaseService {
           case 34:
           case 35:
           case 38:
-            this.execute("", section);
+            this.execute(section.functionalId, section);
             break;
           default:
             this.execute("", section);

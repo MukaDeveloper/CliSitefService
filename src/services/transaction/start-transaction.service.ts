@@ -17,8 +17,8 @@ export default class StartTransaction extends BaseService {
     /**
      * Comunicação com o cliente inicializador da transação
      */
-    this.sendStatus("Iniciando transação...");
-    // console.log("Iniciando transação...");
+    await this.sendStatus("Iniciando transação...");
+    console.log("[0] Iniciando transação...");
     /**
      * Comunicação com o agenteCliSiTef
      */
@@ -84,6 +84,7 @@ export default class StartTransaction extends BaseService {
             dataFiscal: transaction.taxInvoiceDate,
             horaFiscal: transaction.taxInvoiceTime,
             ret: [],
+            functionalId: transaction.functionalId,
           };
           this.transaction$ = transaction;
           // console.log("Acessando continue...");
