@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const qs = require("qs");
 import axios, { AxiosError } from "axios";
 import { Agent } from "https";
 import { BaseService } from "../../shared/base";
+import { IFinishTransaction } from "../../interfaces/i-finish-transaction";
 
 export default class FinishTransaction extends BaseService {
   // #region Constructors (1)
@@ -21,23 +23,12 @@ export default class FinishTransaction extends BaseService {
    * @param confirm Indica se a transação deve ser confirmada (1) ou estornada (0)
    * @param transaction Informações da transação
    */
-  public async execute(confirm: number, transaction: any): Promise<any> {
-    const args: any = {
-      confirm: `${confirm}`,
-      sitefIp: `${transaction.sitefIp}`,
-      storeId: `${transaction.storeId}`,
-      terminalId: `${transaction.terminalId}`,
-      taxInvoiceNumber: `${transaction.taxInvoiceNumber}`,
-      taxInvoiceDate: `${transaction.taxInvoiceDate}`,
-      taxInvoiceTime: `${transaction.taxInvoiceTime}`,
-    };
-
-    console.log("> transaction$", transaction);
+  public async execute(data: IFinishTransaction): Promise<any> {
 
     try {
       const res = await axios.post<any>(
         this.agenteUri + "/finishTransaction",
-        qs.stringify(args),
+        qs.stringify(data),
         {
           httpsAgent: new Agent({ rejectUnauthorized: false }),
           headers: {
@@ -51,7 +42,8 @@ export default class FinishTransaction extends BaseService {
 
       const response = res?.data;
       if (response?.serviceStatus === 0) {
-        this.sendStatus(2, "Transação finalizada.");
+        response.status = 2;
+        response.message = "Transação finalizada.";
         return response;
       } else {
         if (response?.serviceMessage && response?.serviceStatus === 1) {

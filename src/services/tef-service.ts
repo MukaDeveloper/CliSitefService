@@ -1,16 +1,20 @@
 import {
+  IContinueTransaction,
   ISendStatus,
   IStartTransaction,
   IStartTransactionResponse,
 } from "../interfaces";
+import { IFinishTransaction } from "../interfaces/i-finish-transaction";
 import GetState from "./state/get-state.service";
 import ContinueTransaction from "./transaction/continue-transaction.service";
+import FinishTransaction from "./transaction/finish-transaction.service";
 import StartTransaction from "./transaction/start-transaction.service";
 
 export class TefService {
   // #region Properties (3)
 
   private continueTransaction: ContinueTransaction;
+  private finishTransaction: FinishTransaction;
   private getState: GetState;
   private startTransaction: StartTransaction;
 
@@ -22,6 +26,7 @@ export class TefService {
     this.getState = new GetState();
     this.startTransaction = new StartTransaction();
     this.continueTransaction = new ContinueTransaction();
+    this.finishTransaction = new FinishTransaction();
   }
 
   // #endregion Constructors (1)
@@ -33,8 +38,12 @@ export class TefService {
    * @param data Texto enviado para continuar a transação, normalmente vazio
    * @description Continua com a transação
    */
-  public async continue(data: string): Promise<unknown> {
-    return await this.continueTransaction.execute(data);
+  public async continue(data: string, cancel: boolean = false): Promise<unknown> {
+    return await this.continueTransaction.execute(data, cancel);
+  }
+
+  public async finish(data: IFinishTransaction) {
+    return await this.finishTransaction.execute(data);
   }
 
   /**
@@ -42,7 +51,10 @@ export class TefService {
    * @param data objeto enviado para iniciar a transação, interface IStartTransaction
    * @description Inicia a transação com parâmetros de configuração
    */
-  public async init(data: IStartTransaction, newTransaction: boolean): Promise<IStartTransactionResponse | void> {
+  public async init(
+    data: IStartTransaction,
+    newTransaction: boolean
+  ): Promise<IStartTransactionResponse | void> {
     const state = await this.getState.execute();
 
     console.log("Estado do agente:", state);
@@ -58,15 +70,15 @@ export class TefService {
           return;
         case 2:
         case 3:
-          console.log(
-            "Há uma transação iniciada ou em andamento."
-          );
-          if (newTransaction) {
-            this.continue("-1");
-            return;
-          } else {
-            this.continue("");
+          console.log("Há uma transação iniciada ou em andamento.");
+          if (newTransaction === true) {
+            this.continueTransaction.section$ = {
+              sessionId: state?.sessionId,
+              continue: "-1",
+              data: "",
+            } as IContinueTransaction;
           }
+          await this.continue("");
           break;
         case 4:
           // FinishTransaction;
@@ -78,7 +90,7 @@ export class TefService {
       if (response?.clisitefStatus === 10000) {
         const section = {
           sessionId: response?.sessionId,
-          continua: "0",
+          continue: "0",
           cupomFiscal: data.taxInvoiceNumber,
           dataFiscal: data.taxInvoiceDate,
           horaFiscal: data.taxInvoiceTime,
@@ -86,9 +98,16 @@ export class TefService {
           functionalId: data.functionalId,
           functionalType: data.functionalType,
         };
-        this.continueTransaction.transaction$ =
-          this.startTransaction.transaction$;
+
+        /**
+         * Alimenta as variáveis da instância continue.
+         */
+        this.continueTransaction.transaction$ = data
         this.continueTransaction.section$ = section;
+
+        /**
+         * Continua com a transação.
+         */
         await this.continue("");
         return response;
       } else {

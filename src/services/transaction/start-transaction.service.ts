@@ -76,7 +76,6 @@ export default class StartTransaction extends BaseService {
            *
            * Alimenta a variável global com as informações da transação
            */
-          this.transaction$ = transaction;
           return response;
         }
       } else {

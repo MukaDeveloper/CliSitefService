@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const qs = require("qs");
 import { IContinueTransactionResponse } from "../../interfaces";
+import { IFinishTransaction } from "../../interfaces/i-finish-transaction";
 import { BaseService } from "../../shared/base";
 import axios, { AxiosError } from "axios";
 import { Agent } from "https";
@@ -8,6 +10,8 @@ import FinishTransaction from "./finish-transaction.service";
 
 export default class ContinueTransaction extends BaseService {
   // #region Constructors (1)
+  public section$: any = {};
+  public transaction$: any = {};
 
   constructor() {
     super();
@@ -15,9 +19,28 @@ export default class ContinueTransaction extends BaseService {
 
   // #endregion Constructors (1)
 
+  protected async sendFinished() {
+    const finishTransaction = new FinishTransaction();
+    
+    const data = {
+      confirm: "1",
+      sessionId: this.section$.sessionId,
+      sitefIp: this.transaction$.sitefIp,
+      storeId: this.transaction$.storeId,
+      taxInvoiceDate: this.transaction$.taxInvoiceDate,
+      taxInvoiceNumber: this.transaction$.taxInvoiceNumber,
+      taxInvoiceTime: this.transaction$.taxInvoiceTime,
+      terminalId: this.transaction$.terminalId,
+    } as IFinishTransaction;
+
+    const finish = await finishTransaction.execute(data);
+    this.sendStatus(finish.status, finish.message);
+    return;
+  }
+
   // #region Public Methods (1)
 
-  public async execute(data: string) {
+  public async execute(data: string, cancel: boolean = false) {
     /**
      * Comunicação com o agenteCliSiTef
      */
@@ -26,12 +49,10 @@ export default class ContinueTransaction extends BaseService {
        * Requisição POST para o agenteCliSiTef
        */
       const section = this.section$;
-      if (data === "-1") {
-        section.continua = data;
-        section.data = "";
-      } else {
-        section.data = data;
+      if (cancel === true) {
+        section.continue = "-1";
       }
+      section.data = data;
       const res = await axios.post<IContinueTransactionResponse>(
         this.agenteUri + "/continueTransaction",
         qs.stringify(section),
@@ -47,9 +68,11 @@ export default class ContinueTransaction extends BaseService {
       );
       const response = res?.data as IContinueTransactionResponse;
       if (response) {
+        if (section.continue === "-1") {
+          console.log('--->', response);
+        }
         if (response.commandId != 0 && response.data != "") {
-          console.log(`[${response.commandId}] ${response.data}`);
-          if (response.commandId === 34) {
+          if (response.commandId === 34 || response.commandId === 22) {
             this.sendStatus(2, response.data);
           } else {
             this.sendStatus(1, response.data);
@@ -61,8 +84,7 @@ export default class ContinueTransaction extends BaseService {
 
         if (response.clisitefStatus != 10000) {
           if (response.clisitefStatus == 0) {
-            const finish = new FinishTransaction();
-            await finish.execute(1, this.transaction$);
+            await this.sendFinished();
           }
           return `Fim - Retorno: ${response.clisitefStatus}`;
         }
@@ -122,19 +144,26 @@ export default class ContinueTransaction extends BaseService {
           case 35:
           case 38:
             if (response.commandId === 21) {
-              if (section.functionalId) {
-                this.execute(section.functionalId);
-              } else {
-                // this.sendResponseRequest(response?.data);
+              if (response?.data?.startsWith("1:Cheque;")) {
+                if (section.functionalId) {
+                  this.execute(section.functionalId);
+                } else {
+                  this.execute("1");
+                  // this.sendResponseRequest(response?.data);
+                }
+              }
+              if (response?.data?.startsWith("1:A Vista;")) {
+                if (section.functionalType) {
+                  this.execute(section.functionalType);
+                } else {
+                  this.execute("1");
+                  // this.sendResponseRequest(response?.data);
+                }
               }
               break;
             }
             if (response.commandId === 34) {
-              if (section.functionalType) {
-                this.execute(section.functionalType);
-              } else {
-                this.execute("1");
-              }
+              // PERGUNTAR VALOR DO SAQUE
             }
             break;
           default:
@@ -143,7 +172,6 @@ export default class ContinueTransaction extends BaseService {
       } else {
         throw new Error("Erro ao continuar transação");
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       /**
        * Retorno de erro do try/catch
@@ -152,7 +180,6 @@ export default class ContinueTransaction extends BaseService {
       /**
        * Função tipo guarda para verificar se o erro é um objeto com mensagem.
        */
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const isErrorWithMessage = (err: any): err is { message: string } =>
         error.message !== undefined;
 

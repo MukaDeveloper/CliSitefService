@@ -17,5 +17,5 @@
     "strict": true
   },
   "include": ["src/**/*", "src/test/server.ts"],
-  // "exclude": ["src/test/**/*"]
+  "exclude": ["src/test/**/*"]
 }
