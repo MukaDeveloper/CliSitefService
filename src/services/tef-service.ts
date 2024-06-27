@@ -1,70 +1,135 @@
-import { IStartTransaction } from '../interfaces';
-import ContinueTransaction from './transaction/continue-transaction.service';
-import StartTransaction from './transaction/start-transaction.service';
+import {
+  ISendStatus,
+  IStartTransaction,
+  IStartTransactionResponse,
+} from "../interfaces";
+import GetState from "./state/get-state.service";
+import ContinueTransaction from "./transaction/continue-transaction.service";
+import StartTransaction from "./transaction/start-transaction.service";
 
 export class TefService {
-  private startTransaction: StartTransaction;
+  // #region Properties (3)
+
   private continueTransaction: ContinueTransaction;
+  private getState: GetState;
+  private startTransaction: StartTransaction;
+
+  // #endregion Properties (3)
+
+  // #region Constructors (1)
 
   constructor() {
+    this.getState = new GetState();
     this.startTransaction = new StartTransaction();
     this.continueTransaction = new ContinueTransaction();
   }
 
-  /**
-   * 
-   * @param data objeto enviado para iniciar a transação, interface IStartTransaction
-   * @description Inicia a transação com parâmetros de configuração
-   */
-  async init(data: IStartTransaction): Promise<any> {
-    const response = await this.startTransaction.execute(data);
+  // #endregion Constructors (1)
 
-    if (response?.sessionId) {
-      const section = {
-        sessionId: response.sessionId,
-        continua: '0',
-        cupomFiscal: data.taxInvoiceNumber,
-        dataFiscal: data.taxInvoiceDate,
-        horaFiscal: data.taxInvoiceTime,
-        ret: [],
-        functionalId: data.functionalId,
-        functionalType: data.functionalType,
-      };
-      this.continueTransaction.transaction$ = this.startTransaction.transaction$;
-      this.continueTransaction.section$ = section;
-      await this.continue('');
-      return response;
-    } else {
-      return new Error('Erro ao iniciar transação');
-    }
-  }
+  // #region Public Methods (4)
 
   /**
-   * 
+   *
    * @param data Texto enviado para continuar a transação, normalmente vazio
-   * @param section Informações da sessão.
-   * @description Continua a transação com execução manual, com os parâmetros de sessão
-   * utilizado em casos de questionamentos do agente para usuário.
+   * @description Continua com a transação
    */
-  async continue(data: string): Promise<any> {
+  public async continue(data: string): Promise<unknown> {
     return await this.continueTransaction.execute(data);
   }
 
   /**
-   * 
-   * Método responsável por receber as respostas dos eventos
-   * enviados pelos métodos de transação.
+   *
+   * @param data objeto enviado para iniciar a transação, interface IStartTransaction
+   * @description Inicia a transação com parâmetros de configuração
    */
-  recieveStatus(callback: (status: string) => void) {
-    this.startTransaction.listenStatus(callback);
-    this.continueTransaction.listenStatus(callback);
+  public async init(data: IStartTransaction, newTransaction: boolean): Promise<IStartTransactionResponse | void> {
+    const state = await this.getState.execute();
+
+    console.log("Estado do agente:", state);
+
+    try {
+      if (state?.serviceState === 0) {
+        console.error("Agente não inicializado");
+        return;
+      }
+      switch (state?.serviceState) {
+        case 0:
+          console.error("Agente não inicializado");
+          return;
+        case 2:
+        case 3:
+          console.log(
+            "Há uma transação iniciada ou em andamento."
+          );
+          if (newTransaction) {
+            this.continue("-1");
+            return;
+          } else {
+            this.continue("");
+          }
+          break;
+        case 4:
+          // FinishTransaction;
+          break;
+      }
+
+      const response = await this.startTransaction.execute(data);
+
+      if (response?.clisitefStatus === 10000) {
+        const section = {
+          sessionId: response?.sessionId,
+          continua: "0",
+          cupomFiscal: data.taxInvoiceNumber,
+          dataFiscal: data.taxInvoiceDate,
+          horaFiscal: data.taxInvoiceTime,
+          ret: [],
+          functionalId: data.functionalId,
+          functionalType: data.functionalType,
+        };
+        this.continueTransaction.transaction$ =
+          this.startTransaction.transaction$;
+        this.continueTransaction.section$ = section;
+        await this.continue("");
+        return response;
+      } else {
+        throw new Error("Erro ao iniciar transação");
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      return {
+        serviceStatus: 1,
+        serviceMessage: error?.message,
+        clisitefStatus: 0,
+      };
+    }
   }
 
   /**
-   * 
+   *
    * Método responsável por receber as respostas de transações aprovadas
    */
-  onApproved(callback: () => void) {
+  public onApproved(callback: () => void) {
     this.continueTransaction.getApproved(callback);
   }
+
+  /**
+   *
+   * Método responsável por receber as respostas dos eventos
+   * enviados pelos métodos de transação.
+   */
+  public recieveStatus(callback: (status: ISendStatus) => void) {
+    const pong = (status: ISendStatus) => {
+      if (
+        this.continueTransaction.message$ === null ||
+        this.continueTransaction.message$ !== status
+      ) {
+        this.continueTransaction.message$ = status;
+        callback(status);
+      }
+    };
+    this.startTransaction.listenStatus(pong);
+    this.continueTransaction.listenStatus(pong);
+  }
+
+  // #endregion Public Methods (4)
 }

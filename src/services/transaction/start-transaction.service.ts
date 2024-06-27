@@ -1,16 +1,23 @@
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const qs = require("qs");
 import { IStartTransaction, IStartTransactionResponse } from "../../interfaces";
 import { BaseService } from "../../shared/base";
 import axios, { AxiosError } from "axios";
 import { Agent } from "https";
-import ContinueTransaction from "./continue-transaction.service";
-
 export default class StartTransaction extends BaseService {
+  // #region Constructors (1)
+
   constructor() {
     super();
   }
 
-  async execute(transaction: IStartTransaction): Promise<any> {
+  // #endregion Constructors (1)
+
+  // #region Public Methods (1)
+
+  public async execute(
+    transaction: IStartTransaction
+  ): Promise<IStartTransactionResponse> {
     /**
      * Comunicação com o agenteCliSiTef
      */
@@ -18,7 +25,7 @@ export default class StartTransaction extends BaseService {
       /**
        * Requisição POST para o agenteCliSiTef
        */
-      const res = await axios.post<any>(
+      const res = await axios.post<IStartTransactionResponse>(
         this.agenteUri + "/startTransaction",
         qs.stringify(transaction),
         {
@@ -52,12 +59,16 @@ export default class StartTransaction extends BaseService {
           /**
            * Retorno de erro caso o estado do serviço seja diferente de 0
            */
-          throw new Error(`[${response.serviceStatus}] Agente ocupado. \n ${response.serviceMessage}`);
+          throw new Error(
+            `[${response.serviceStatus}] Agente ocupado. \n ${response.serviceMessage}`
+          );
         } else if (response.clisitefStatus != 10000) {
           /**
            * Retorno de erro caso o estado da transação seja diferente de 10000
            */
-          throw new Error(`${response.clisitefStatus} | Retorno CliSiTef [NOT10K] | ${response.serviceMessage}`);
+          throw new Error(
+            `${response.clisitefStatus} | Retorno CliSiTef [NOT10K] | ${response.serviceMessage}`
+          );
         } else {
           this.sendStatus(1, "Iniciando transação...");
           /**
@@ -74,6 +85,7 @@ export default class StartTransaction extends BaseService {
          */
         throw new Error(`[AXS404] Ocorreu um erro durante a transação.`);
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       /**
        * Retorno de erro do try/catch
@@ -82,6 +94,7 @@ export default class StartTransaction extends BaseService {
       /**
        * Função tipo guarda para verificar se o erro é um objeto com mensagem.
        */
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const isErrorWithMessage = (err: any): err is { message: string } =>
         error.message !== undefined;
 
@@ -104,13 +117,24 @@ export default class StartTransaction extends BaseService {
           )}`;
           console.error(message);
         }
-        return message;
+        return { serviceStatus: 1, serviceMessage: message, clisitefStatus: 0 };
       } else if (axiosError?.request) {
-        console.error(`Nenhuma resposta do servidor ao iniciar transação: ${axiosError?.message}`);
+        console.error(
+          `Nenhuma resposta do servidor ao iniciar transação: ${axiosError?.message}`
+        );
       } else {
-        console.error(`Erro ao configurar a requisição ao iniciar transação: ${axiosError?.message}`);
+        console.error(
+          `Erro ao configurar a requisição ao iniciar transação: ${axiosError?.message}`
+        );
       }
-      return axiosError?.message || error?.message || "Erro desconhecido";
+      return {
+        serviceStatus: 1,
+        serviceMessage:
+          axiosError?.message || error?.message || "Erro desconhecido",
+        clisitefStatus: 0,
+      };
     }
   }
+
+  // #endregion Public Methods (1)
 }
