@@ -11,7 +11,7 @@ export interface ISendStatus {
    * STATUS DA MENSAGEM - Número que indica se a mensagem é passível
    * de ser exibida ao usuário.
    *
-   * 0 - Não exibir a mensagem;
+   * 0 - Perguntas;
    * 1 - Exibir a mensagem;
    * 2 - Mensagem de Log.
    */

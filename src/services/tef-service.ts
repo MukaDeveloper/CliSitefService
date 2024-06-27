@@ -38,8 +38,12 @@ export class TefService {
    * @param data Texto enviado para continuar a transação, normalmente vazio
    * @description Continua com a transação
    */
-  public async continue(data: string, cancel: boolean = false): Promise<unknown> {
-    return await this.continueTransaction.execute(data, cancel);
+  public async continue(data: string, requestCancel: boolean = false): Promise<unknown> {
+    return await this.continueTransaction.execute(data, requestCancel);
+  }
+
+  public async cancel(cancel: boolean) {
+    return await this.continue(`${cancel === true ? '0' : '1'}`);
   }
 
   public async finish(data: IFinishTransaction) {

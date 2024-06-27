@@ -51,6 +51,8 @@ export default class ContinueTransaction extends BaseService {
       const section = this.section$;
       if (cancel === true) {
         section.continue = "-1";
+      } else {
+        section.continue = "0";
       }
       section.data = data;
       const res = await axios.post<IContinueTransactionResponse>(
@@ -72,10 +74,14 @@ export default class ContinueTransaction extends BaseService {
           console.log('--->', response);
         }
         if (response.commandId != 0 && response.data != "") {
-          if (response.commandId === 34 || response.commandId === 22) {
-            this.sendStatus(2, response.data);
-          } else {
+          // if (response.commandId === 21 || response.commandId === 22 || response.commandId === 34) {
+          //   this.sendStatus(2, response.data);
+          // } else 
+          if (response.commandId === 1 || response.commandId === 3) {
+            console.log(`[${response.commandId}]`, response.data);
             this.sendStatus(1, response.data);
+          } else {
+            this.sendStatus(2, response.data);
           }
         }
         if (response.serviceStatus != 0) {
@@ -97,11 +103,11 @@ export default class ContinueTransaction extends BaseService {
         switch (response.commandId) {
           case 0:
             if (response.fieldId == 121) {
-              this.sendStatus(0, "Cupom Estabelecimento: \n" + response?.data);
+              this.sendStatus(2, "Cupom Estabelecimento: \n" + response?.data);
               this.sendApproved();
             }
             if (response.fieldId == 122) {
-              this.sendStatus(0, "Cupom Cliente: \n" + response?.data);
+              this.sendStatus(2, "Cupom Cliente: \n" + response?.data);
             }
             this.execute("");
             break;
@@ -117,8 +123,8 @@ export default class ContinueTransaction extends BaseService {
           case 16:
             this.execute("");
             break;
-          case 20:
-            // this.sendResponseRequest(response?.data);
+            case 20:
+              this.sendStatus(0, 'Deseja cancelar a operação?');
             break;
           // setTimeout(() => { this.execute("0")}, 2000);
           // break;
