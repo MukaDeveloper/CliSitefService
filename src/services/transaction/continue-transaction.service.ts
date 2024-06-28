@@ -34,7 +34,7 @@ export default class ContinueTransaction extends BaseService {
     } as IFinishTransaction;
 
     const finish = await finishTransaction.execute(data);
-    this.sendStatus(finish.status, finish.message);
+    this.sendStatus(-1, finish.message);
     return;
   }
 

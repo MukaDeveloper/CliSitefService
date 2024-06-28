@@ -42,18 +42,10 @@ export default class FinishTransaction extends BaseService {
 
       const response = res?.data;
       if (response?.serviceStatus === 0) {
-        response.status = 3;
-        response.message = "Transação finalizada.";
-        return response;
-      } else {
-        if (response?.serviceMessage && response?.serviceStatus === 1) {
-          throw new Error(
-            response?.serviceStatus + response?.serviceMessage || ""
-          );
-        } else {
-          throw new Error("Desconhecido.");
-        }
+        const message = "Transação finalizada.";
+        response.serviceMessage = message;
       }
+      return response;
     } catch (error: any) {
       /**
        * Retorno de erro do try/catch
