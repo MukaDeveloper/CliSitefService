@@ -1,5 +1,4 @@
 import {
-  IContinueTransaction,
   ISendStatus,
   IStartTransaction,
   IStartTransactionResponse,
@@ -15,7 +14,7 @@ export class TefService {
 
   private continueTransaction: ContinueTransaction;
   private finishTransaction: FinishTransaction;
-  private getState: GetState;
+  private getStateService: GetState;
   private startTransaction: StartTransaction;
 
   // #endregion Properties (3)
@@ -23,7 +22,7 @@ export class TefService {
   // #region Constructors (1)
 
   constructor() {
-    this.getState = new GetState();
+    this.getStateService = new GetState();
     this.startTransaction = new StartTransaction();
     this.continueTransaction = new ContinueTransaction();
     this.finishTransaction = new FinishTransaction();
@@ -31,23 +30,35 @@ export class TefService {
 
   // #endregion Constructors (1)
 
-  // #region Public Methods (4)
+  // #region Estágios (5)
 
   /**
    *
    * @param data Texto enviado para continuar a transação, normalmente vazio
    * @description Continua com a transação
    */
-  public async continue(data: string, requestCancel: boolean = false): Promise<unknown> {
+  public async continue(data: string, requestCancel: boolean | null = null): Promise<unknown> {
     return await this.continueTransaction.execute(data, requestCancel);
   }
 
   public async cancel(cancel: boolean) {
-    return await this.continue(`${cancel === true ? '0' : '1'}`);
+    if (cancel === true) {
+      return await this.continue('0');
+    } else {
+      return await this.continue(`1`);
+    }
   }
 
   public async finish(data: IFinishTransaction) {
     return await this.finishTransaction.execute(data);
+  }
+
+  /**
+   * 
+   * @returns Retorna o estado atual do agente
+   */
+  public async getState() {
+    return await this.getStateService.execute();
   }
 
   /**
@@ -57,35 +68,19 @@ export class TefService {
    */
   public async init(
     data: IStartTransaction,
-    newTransaction: boolean
   ): Promise<IStartTransactionResponse | void> {
-    const state = await this.getState.execute();
-
+    const state = await this.getState();
     console.log("Estado do agente:", state);
 
     try {
-      if (state?.serviceState === 0) {
-        console.error("Agente não inicializado");
-        return;
-      }
       switch (state?.serviceState) {
         case 0:
-          console.error("Agente não inicializado");
-          return;
+          throw new Error("Agente não inicializado");
         case 2:
         case 3:
-          console.log("Há uma transação iniciada ou em andamento.");
-          if (newTransaction === true) {
-            this.continueTransaction.section$ = {
-              sessionId: state?.sessionId,
-              continue: "-1",
-              data: "",
-            } as IContinueTransaction;
-          }
-          await this.continue("");
-          break;
+          throw new Error("Já existe uma transação iniciada ou em andamento");
         case 4:
-          // FinishTransaction;
+          await this.continueTransaction.sendFinished();
           break;
       }
 
@@ -127,6 +122,10 @@ export class TefService {
     }
   }
 
+  // #endregion Estágios (5)
+
+  // #region Listeners
+
   /**
    *
    * Método responsável por receber as respostas de transações aprovadas
@@ -154,5 +153,31 @@ export class TefService {
     this.continueTransaction.listenStatus(pong);
   }
 
-  // #endregion Public Methods (4)
+  public recieveLogs(callback: (status: ISendStatus) => void) {
+    const pong = (status: ISendStatus) => {
+      if (
+        this.continueTransaction.message$ === null ||
+        this.continueTransaction.message$ !== status
+      ) {
+        this.continueTransaction.message$ = status;
+        callback(status);
+      }
+    };
+    this.continueTransaction.listenLogs(pong);
+  }
+
+  public recieveQuestion(callback: (status: ISendStatus) => void) {
+    const pong = (status: ISendStatus) => {
+      if (
+        this.continueTransaction.message$ === null ||
+        this.continueTransaction.message$ !== status
+      ) {
+        this.continueTransaction.message$ = status;
+        callback(status);
+      }
+    };
+    this.continueTransaction.listenQuestion(pong);
+  }
+
+  // #endregion Listeners
 }

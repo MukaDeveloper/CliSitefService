@@ -42,7 +42,7 @@ export default class FinishTransaction extends BaseService {
 
       const response = res?.data;
       if (response?.serviceStatus === 0) {
-        response.status = 2;
+        response.status = 3;
         response.message = "Transação finalizada.";
         return response;
       } else {

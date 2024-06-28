@@ -19,18 +19,18 @@ export default class ContinueTransaction extends BaseService {
 
   // #endregion Constructors (1)
 
-  protected async sendFinished() {
+  public async sendFinished() {
     const finishTransaction = new FinishTransaction();
     
     const data = {
       confirm: "1",
       sessionId: this.section$.sessionId,
-      sitefIp: this.transaction$.sitefIp,
-      storeId: this.transaction$.storeId,
-      taxInvoiceDate: this.transaction$.taxInvoiceDate,
-      taxInvoiceNumber: this.transaction$.taxInvoiceNumber,
-      taxInvoiceTime: this.transaction$.taxInvoiceTime,
-      terminalId: this.transaction$.terminalId,
+      sitefIp: this.transaction$?.sitefIp,
+      storeId: this.transaction$?.storeId,
+      taxInvoiceDate: this.transaction$?.taxInvoiceDate,
+      taxInvoiceNumber: this.transaction$?.taxInvoiceNumber,
+      taxInvoiceTime: this.transaction$?.taxInvoiceTime,
+      terminalId: this.transaction$?.terminalId,
     } as IFinishTransaction;
 
     const finish = await finishTransaction.execute(data);
@@ -40,16 +40,19 @@ export default class ContinueTransaction extends BaseService {
 
   // #region Public Methods (1)
 
-  public async execute(data: string, cancel: boolean = false) {
+  public async execute(data: string, cancel: boolean | null = null) {
     /**
      * Comunicação com o agenteCliSiTef
      */
+    if (!this.section$) {
+      return "Informações de seção não encontradas.";
+    }
     try {
       /**
        * Requisição POST para o agenteCliSiTef
        */
       const section = this.section$;
-      if (cancel === true) {
+      if (cancel && cancel === true) {
         section.continue = "-1";
       } else {
         section.continue = "0";
@@ -70,18 +73,11 @@ export default class ContinueTransaction extends BaseService {
       );
       const response = res?.data as IContinueTransactionResponse;
       if (response) {
-        if (section.continue === "-1") {
-          console.log('--->', response);
-        }
         if (response.commandId != 0 && response.data != "") {
-          // if (response.commandId === 21 || response.commandId === 22 || response.commandId === 34) {
-          //   this.sendStatus(2, response.data);
-          // } else 
           if (response.commandId === 1 || response.commandId === 3) {
-            console.log(`[${response.commandId}]`, response.data);
-            this.sendStatus(1, response.data);
+            this.sendStatus(response.commandId, response.data);
           } else {
-            this.sendStatus(2, response.data);
+            this.sendLogs(response.commandId, response.data);
           }
         }
         if (response.serviceStatus != 0) {
@@ -90,9 +86,9 @@ export default class ContinueTransaction extends BaseService {
 
         if (response.clisitefStatus != 10000) {
           if (response.clisitefStatus == 0) {
-            await this.sendFinished();
+            this.sendApproved();
           }
-          return `Fim - Retorno: ${response.clisitefStatus}`;
+          await this.sendFinished();
         }
 
         let lastStatus;
@@ -103,11 +99,10 @@ export default class ContinueTransaction extends BaseService {
         switch (response.commandId) {
           case 0:
             if (response.fieldId == 121) {
-              this.sendStatus(2, "Cupom Estabelecimento: \n" + response?.data);
-              this.sendApproved();
+              this.sendLogs(2, "Cupom Estabelecimento: \n" + response?.data);
             }
             if (response.fieldId == 122) {
-              this.sendStatus(2, "Cupom Cliente: \n" + response?.data);
+              this.sendLogs(2, "Cupom Cliente: \n" + response?.data);
             }
             this.execute("");
             break;
@@ -123,11 +118,11 @@ export default class ContinueTransaction extends BaseService {
           case 16:
             this.execute("");
             break;
-            case 20:
-              this.sendStatus(0, 'Deseja cancelar a operação?');
+          case 20:
+            if (response?.data?.startsWith("13 -")) {
+              this.sendQuestion(13, 'Deseja cancelar a operação?');
+            }
             break;
-          // setTimeout(() => { this.execute("0")}, 2000);
-          // break;
           case 22:
             setTimeout(() => {
               this.execute("");

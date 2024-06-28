@@ -21,18 +21,22 @@ export class BaseService {
 
   // #endregion Constructors (1)
 
-  // #region Public Methods (6)
+  // #region Approved (2)
+
+  public sendApproved() {
+    this.emitter.emit("transactionApproved");
+  }
 
   public getApproved(callback: () => void) {
     this.emitter.on("transactionApproved", callback);
   }
+  
+  // #endregion Approved (2)
+
+  // #region Status (6)
 
   public listenStatus(callback: (res: ISendStatus) => void) {
     this.emitter.on("transactionStatus", callback);
-  }
-
-  public sendApproved() {
-    this.emitter.emit("transactionApproved");
   }
 
   public sendStatus(status: number, message: string) {
@@ -40,5 +44,23 @@ export class BaseService {
     this.emitter.emit("transactionStatus", { status, message } as ISendStatus);
   }
 
-  // #endregion Public Methods (6)
+  public listenLogs(callback: (res: ISendStatus) => void) {
+    this.emitter.on("transactionLogs", callback);
+  }
+
+  public sendLogs(status: number, message: string) {
+    if (message === "" || !message) return;
+    this.emitter.emit("transactionLogs", { status, message } as ISendStatus);
+  }
+
+  public listenQuestion(callback: (res: ISendStatus) => void) {
+    this.emitter.on("transactionQuestion", callback);
+  }
+
+  public sendQuestion(status: number, message: string) {
+    if (message === "" || !message) return;
+    this.emitter.emit("transactionQuestion", { status, message } as ISendStatus);
+  }
+
+  // #endregion Status (6)
 }
