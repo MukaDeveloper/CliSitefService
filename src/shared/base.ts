@@ -40,7 +40,6 @@ export class BaseService {
   }
 
   public sendStatus(status: number, message: string) {
-    if (message === "" || !message) return;
     this.emitter.emit("transactionStatus", { status, message } as ISendStatus);
   }
 
@@ -49,7 +48,6 @@ export class BaseService {
   }
 
   public sendLogs(status: number, message: string) {
-    if (message === "" || !message) return;
     this.emitter.emit("transactionLogs", { status, message } as ISendStatus);
   }
 

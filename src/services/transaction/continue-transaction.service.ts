@@ -34,13 +34,12 @@ export default class ContinueTransaction extends BaseService {
     } as IFinishTransaction;
 
     const finish = await finishTransaction.execute(data);
-    this.sendStatus(-1, finish.message);
-    return;
+    this.sendStatus(-1, finish.serviceMessage);
   }
 
   // #region Public Methods (1)
 
-  public async execute(data: string, cancel: boolean | null = null) {
+  public async execute(data: string) {
     /**
      * Comunicação com o agenteCliSiTef
      */
@@ -52,11 +51,6 @@ export default class ContinueTransaction extends BaseService {
        * Requisição POST para o agenteCliSiTef
        */
       const section = this.section$;
-      if (cancel && cancel === true) {
-        section.continue = "-1";
-      } else {
-        section.continue = "0";
-      }
       section.data = data;
       const res = await axios.post<IContinueTransactionResponse>(
         this.agenteUri + "/continueTransaction",
@@ -73,13 +67,11 @@ export default class ContinueTransaction extends BaseService {
       );
       const response = res?.data as IContinueTransactionResponse;
       if (response) {
-        if (response.commandId != 0 && response.data != "") {
-          if (response.commandId === 1 || response.commandId === 3) {
-            this.sendStatus(response.commandId, response.data);
-          } else {
-            this.sendLogs(response.commandId, response.data);
-          }
-        }
+        // if (response.commandId != 0 && response.data != "") {
+        //   if (response.commandId !== 1 && response.commandId !== 3) {
+        //     this.sendLogs(response.commandId, response.data);
+        //   }
+        // }
         if (response.serviceStatus != 0) {
           throw new Error(response.serviceMessage || "");
         }
@@ -88,7 +80,7 @@ export default class ContinueTransaction extends BaseService {
           if (response.clisitefStatus == 0) {
             this.sendApproved();
           }
-          await this.sendFinished();
+          return await this.sendFinished();
         }
 
         let lastStatus;
@@ -111,30 +103,40 @@ export default class ContinueTransaction extends BaseService {
           case 3:
           case 4:
           case 15:
+            this.sendStatus(response.commandId, response?.data);
+            this.execute("");
+            break;
+
           case 11:
           case 12:
           case 13:
           case 14:
           case 16:
+            this.sendStatus(response.commandId, "");
             this.execute("");
             break;
+
           case 20:
             if (response?.data?.startsWith("13 -")) {
-              this.sendQuestion(13, 'Deseja cancelar a operação?');
+              return this.sendQuestion(13, 'Deseja cancelar a operação?');
             }
             break;
+
           case 22:
+            this.sendQuestion(22, response?.data);
             setTimeout(() => {
               this.execute("");
             }, 1000);
             break;
+
           case 23:
             if (lastStatus != response?.data) {
               lastStatus = response?.data;
             }
             setTimeout(() => {
               this.execute("");
-            }, 1000);
+              section.continue = "0";
+            }, 500);
             break;
           case 21:
           case 30:
@@ -149,22 +151,20 @@ export default class ContinueTransaction extends BaseService {
                 if (section.functionalId) {
                   this.execute(section.functionalId);
                 } else {
-                  this.execute("1");
-                  // this.sendResponseRequest(response?.data);
+                  return this.sendQuestion(21.1, response?.data);
                 }
               }
               if (response?.data?.startsWith("1:A Vista;")) {
                 if (section.functionalType) {
                   this.execute(section.functionalType);
                 } else {
-                  this.execute("1");
-                  // this.sendResponseRequest(response?.data);
+                  return this.sendQuestion(21.2, response?.data);
                 }
               }
               break;
             }
             if (response.commandId === 34) {
-              // PERGUNTAR VALOR DO SAQUE
+              return this.sendQuestion(34, response?.data);
             }
             break;
           default:

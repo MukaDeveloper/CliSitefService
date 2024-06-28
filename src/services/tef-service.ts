@@ -12,10 +12,11 @@ import StartTransaction from "./transaction/start-transaction.service";
 export class TefService {
   // #region Properties (3)
 
+  private startTransaction: StartTransaction;
   private continueTransaction: ContinueTransaction;
   private finishTransaction: FinishTransaction;
   private getStateService: GetState;
-  private startTransaction: StartTransaction;
+  private toCancel = false;
 
   // #endregion Properties (3)
 
@@ -34,44 +35,13 @@ export class TefService {
 
   /**
    *
-   * @param data Texto enviado para continuar a transação, normalmente vazio
-   * @description Continua com a transação
-   */
-  public async continue(data: string, requestCancel: boolean | null = null): Promise<unknown> {
-    return await this.continueTransaction.execute(data, requestCancel);
-  }
-
-  public async cancel(cancel: boolean) {
-    if (cancel === true) {
-      return await this.continue('0');
-    } else {
-      return await this.continue(`1`);
-    }
-  }
-
-  public async finish(data: IFinishTransaction) {
-    return await this.finishTransaction.execute(data);
-  }
-
-  /**
-   * 
-   * @returns Retorna o estado atual do agente
-   */
-  public async getState() {
-    return await this.getStateService.execute();
-  }
-
-  /**
-   *
    * @param data objeto enviado para iniciar a transação, interface IStartTransaction
    * @description Inicia a transação com parâmetros de configuração
    */
   public async init(
-    data: IStartTransaction,
+    data: IStartTransaction
   ): Promise<IStartTransactionResponse | void> {
     const state = await this.getState();
-    console.log("Estado do agente:", state);
-
     try {
       switch (state?.serviceState) {
         case 0:
@@ -101,8 +71,9 @@ export class TefService {
         /**
          * Alimenta as variáveis da instância continue.
          */
-        this.continueTransaction.transaction$ = data
+        this.continueTransaction.transaction$ = data;
         this.continueTransaction.section$ = section;
+        this.toCancel = false;
 
         /**
          * Continua com a transação.
@@ -122,9 +93,68 @@ export class TefService {
     }
   }
 
+  /**
+   *
+   * @param data Texto enviado para continuar a transação, normalmente vazio
+   * @description Continua com a transação
+   */
+  public async continue(data: string): Promise<unknown> {
+    if (this.toCancel) {
+      await this.continueTransaction.sendStatus(
+        0,
+        "Existia um pedido de cancelamento. O mesmo foi aceito."
+      );
+      this.toCancel = false;
+      return await this.continueTransaction.execute("0");
+    }
+    return await this.continueTransaction.execute(data);
+  }
+
+  /**
+   * Finaliza uma transação
+   */
+  public async finish(data: IFinishTransaction) {
+    this.toCancel = false;
+    return await this.finishTransaction.execute(data);
+  }
+
+  /**
+   * @description Requisita o cancelamento de uma transação
+   * É necessário a confirmação - confirmCancel(true / false)
+   */
+  public async requestCancel() {
+    if (this.toCancel) {
+      return;
+    }
+    this.toCancel = true;
+    this.continueTransaction.section$.continue = -1;
+  }
+
+  /**
+   *
+   * @param cancel Confirma o cancelamento da transaçaõ
+   * @description Cancela uma transação
+   */
+  public async confirmCancel(cancel: boolean) {
+    this.toCancel = false;
+    if (cancel === true) {
+      return await this.continue("0");
+    } else {
+      return await this.continue(`1`);
+    }
+  }
+
+  /**
+   *
+   * @returns Retorna o estado atual do agente
+   */
+  public async getState() {
+    return await this.getStateService.execute();
+  }
+
   // #endregion Estágios (5)
 
-  // #region Listeners
+  // #region Listeners (4)
 
   /**
    *
@@ -179,5 +209,5 @@ export class TefService {
     this.continueTransaction.listenQuestion(pong);
   }
 
-  // #endregion Listeners
+  // #endregion Listeners (4)
 }
