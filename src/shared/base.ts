@@ -23,11 +23,11 @@ export class BaseService {
 
   // #region Approved (2)
 
-  public sendApproved() {
-    this.emitter.emit("transactionApproved");
+  public sendApproved(status: number, displayId: string) {
+    this.emitter.emit("transactionApproved", { status, displayId });
   }
 
-  public getApproved(callback: () => void) {
+  public getApproved(callback: (data: { status: number, displayId: string}) => void) {
     this.emitter.on("transactionApproved", callback);
   }
   

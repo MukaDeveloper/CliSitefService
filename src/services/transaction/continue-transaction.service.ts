@@ -78,7 +78,7 @@ export default class ContinueTransaction extends BaseService {
 
         if (response.clisitefStatus != 10000) {
           if (response.clisitefStatus == 0) {
-            this.sendApproved();
+            this.sendApproved(0, this.transaction$?.displayId);
           }
           return await this.sendFinished();
         }
@@ -91,9 +91,11 @@ export default class ContinueTransaction extends BaseService {
         switch (response.commandId) {
           case 0:
             if (response.fieldId == 121) {
+              this.sendStatus(response.fieldId, "Imprimindo Cupom...");
               this.sendLogs(2, "Cupom Estabelecimento: \n" + response?.data);
             }
             if (response.fieldId == 122) {
+              this.sendStatus(response.fieldId, "Imprimindo Cupom...");
               this.sendLogs(2, "Cupom Cliente: \n" + response?.data);
             }
             this.execute("");
@@ -123,11 +125,11 @@ export default class ContinueTransaction extends BaseService {
             break;
 
           case 22:
-            this.sendQuestion(22, response?.data);
-            setTimeout(() => {
-              this.execute("");
-            }, 1000);
-            break;
+            return this.sendQuestion(22, response?.data);
+            // setTimeout(() => {
+            //   this.execute("");
+            // }, 1000);
+            // break;
 
           case 23:
             if (lastStatus != response?.data) {
@@ -148,18 +150,10 @@ export default class ContinueTransaction extends BaseService {
           case 38:
             if (response.commandId === 21) {
               if (response?.data?.startsWith("1:Cheque;")) {
-                if (section.functionalId) {
-                  this.execute(section.functionalId);
-                } else {
-                  return this.sendQuestion(21.1, response?.data);
-                }
+                return this.sendQuestion(21.1, response?.data);
               }
               if (response?.data?.startsWith("1:A Vista;")) {
-                if (section.functionalType) {
-                  this.execute(section.functionalType);
-                } else {
-                  return this.sendQuestion(21.2, response?.data);
-                }
+                return this.sendQuestion(21.2, response?.data);
               }
               break;
             }

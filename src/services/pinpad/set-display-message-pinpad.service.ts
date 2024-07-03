@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 //  https://127.0.0.1/agente/clisitef/state
 
 import axios, { AxiosError } from "axios";
 import { BaseService } from "../../shared/base";
 import { Agent } from "https";
 
-export default class GetState extends BaseService {
+export default class SetDisplayMessagePinpad extends BaseService {
   // #region Constructors (1)
 
   constructor() {
@@ -20,26 +21,23 @@ export default class GetState extends BaseService {
    * @returns
    * serviceStatus: 0 - OK; 1 - NOK;
    * serviceMessage: Recebe somente em caso do estado do serviço ser 1;
-   * serviceState:
-   *    0 - Não inicializado;
-   *    1 - Inicializado e pronto;
-   *    2 - StartTransaction já iniciada, aguardando ContinueTransaction;
-   *    3 - Processo em andamento, aguardando ContinueTransaction;
-   *    4 - Aguardando FinishTransaction.
-   * serviceVersion: Versão do agente;
-   * sessionId: Chave de sessão atualmente ativa, caso exista.
+   * clisitefStatus: Contém o resultado de resposta à chamada da rotina AbrePinPad;
    */
-  public async execute() {
+  public async execute(sessionId: string, message: string, persistent: string) {
     try {
-      const res = await axios.get<any>(this.agenteUri + "/state", {
-        httpsAgent: new Agent({ rejectUnauthorized: false }),
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Accept: "*/*",
-          "Accept-Encoding": "gzip, deflate, br",
-          Connection: "keep-alive",
-        },
-      });
+      const res = await axios.post<any>(
+        this.agenteUri + "/pinpad/setDisplayMessage",
+        { sessionId, message, persistent },
+        {
+          httpsAgent: new Agent({ rejectUnauthorized: false }),
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Accept: "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            Connection: "keep-alive",
+          },
+        }
+      );
 
       const response = res?.data;
       if (response) {
@@ -61,13 +59,13 @@ export default class GetState extends BaseService {
          * Verifique se a resposta de erro é um objeto com uma propriedade 'message'.
          */
         if (isErrorWithMessage(axiosError?.response.data)) {
-          message = `Erro ao buscar estado do agente: ${axiosError?.response.data.message}`;
+          message = `Erro ao definir mensagem no pinpad: ${axiosError?.response.data.message}`;
           console.error(message);
         } else {
           /**
            * Se não for um objeto com 'message', apenas stringify o que quer que seja.
            */
-          message = `Erro ao buscar estado do agente: ${JSON.stringify(
+          message = `Erro ao definir mensagem no pinpad: ${JSON.stringify(
             axiosError?.response.data
           )}`;
           console.error(message);
@@ -75,11 +73,11 @@ export default class GetState extends BaseService {
         return message;
       } else if (axiosError?.request) {
         console.error(
-          `Nenhuma resposta do servidor ao buscar estado do agente: ${axiosError?.message}`
+          `Nenhuma resposta do servidor ao definir mensagem no pinpad: ${axiosError?.message}`
         );
       } else {
         console.error(
-          `Erro ao configurar a requisição ao buscar estado do agente: ${axiosError?.message}`
+          `Erro ao configurar a requisição ao definir mensagem no pinpad: ${axiosError?.message}`
         );
       }
       return axiosError?.message || error?.message || "Erro desconhecido";
