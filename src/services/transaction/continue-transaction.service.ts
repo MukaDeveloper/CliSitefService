@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const qs = require("qs");
-import { IContinueTransactionResponse } from "../../interfaces";
 import { IFinishTransaction } from "../../interfaces/i-finish-transaction";
 import { BaseService } from "../../shared/base";
 import axios, { AxiosError } from "axios";
 import { Agent } from "https";
 import FinishTransaction from "./finish-transaction.service";
+import { IContinueTransactionResponse } from "../../interfaces/i-continue-transaction";
 
 export default class ContinueTransaction extends BaseService {
   // #region Constructors (1)

@@ -1,9 +1,9 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const qs = require("qs");
-import { IStartTransaction, IStartTransactionResponse } from "../../interfaces";
 import { BaseService } from "../../shared/base";
 import axios, { AxiosError } from "axios";
 import { Agent } from "https";
+import { IStartTransaction, IStartTransactionResponse } from "../../interfaces/i-start-transaction";
 export default class StartTransaction extends BaseService {
   // #region Constructors (1)
 

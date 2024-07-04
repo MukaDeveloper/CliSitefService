@@ -4,9 +4,8 @@
 import axios, { AxiosError } from "axios";
 import { BaseService } from "../../shared/base";
 import { Agent } from "https";
-import { ICreateSession } from "../../interfaces/i-create-session";
 
-export default class CreateSession extends BaseService {
+export default class GetSession extends BaseService {
   // #region Constructors (1)
 
   constructor() {
@@ -17,19 +16,10 @@ export default class CreateSession extends BaseService {
 
   // #region Public Methods (1)
 
-  /**
-   *
-   * @returns
-   * serviceStatus: 0 - OK; 1 - NOK;
-   * serviceMessage: Recebe somente em caso do estado do serviço ser 1;
-   * clisitefStatus: Contém o resultado de resposta à chamada da rotina ConfiguraIntSiTefInterativoEx;
-   * sessionId: Chave de sessão criada.
-   */
-  public async execute(data: ICreateSession) {
+  public async execute() {
     try {
-      const res = await axios.post<any>(
+      const res = await axios.get<any>(
         this.agenteUri + "/session",
-        data,
         {
           httpsAgent: new Agent({ rejectUnauthorized: false }),
           headers: {
@@ -61,13 +51,13 @@ export default class CreateSession extends BaseService {
          * Verifique se a resposta de erro é um objeto com uma propriedade 'message'.
          */
         if (isErrorWithMessage(axiosError?.response.data)) {
-          message = `Erro ao criar sessão: ${axiosError?.response.data.message}`;
+          message = `Erro ao obter sessão: ${axiosError?.response.data.message}`;
           console.error(message);
         } else {
           /**
            * Se não for um objeto com 'message', apenas stringify o que quer que seja.
            */
-          message = `Erro ao criar sessão: ${JSON.stringify(
+          message = `Erro ao obter sessão: ${JSON.stringify(
             axiosError?.response.data
           )}`;
           console.error(message);
@@ -75,11 +65,11 @@ export default class CreateSession extends BaseService {
         return message;
       } else if (axiosError?.request) {
         console.error(
-          `Nenhuma resposta do servidor ao criar sessão: ${axiosError?.message}`
+          `Nenhuma resposta do servidor ao obter sessão: ${axiosError?.message}`
         );
       } else {
         console.error(
-          `Erro ao configurar a requisição ao criar sessão: ${axiosError?.message}`
+          `Erro ao configurar a requisição ao obter sessão: ${axiosError?.message}`
         );
       }
       return axiosError?.message || error?.message || "Erro desconhecido";

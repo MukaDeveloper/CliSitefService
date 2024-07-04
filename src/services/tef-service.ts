@@ -1,9 +1,7 @@
-import {
-  ISendStatus,
-  IStartTransaction,
-  IStartTransactionResponse,
-} from "../interfaces";
+import { ICreateSession } from "../interfaces/i-create-session";
 import { IFinishTransaction } from "../interfaces/i-finish-transaction";
+import { ISendStatus } from "../interfaces/i-send-status";
+import { IStartTransaction, IStartTransactionResponse } from "../interfaces/i-start-transaction";
 import GetState from "./general/get-state.service";
 import GetVersion from "./general/get-version.service";
 import ClosePinpad from "./pinpad/close-pinpad.service";
@@ -12,6 +10,8 @@ import OpenPinpad from "./pinpad/open-pinpad.service";
 import ReadYesNoPinpad from "./pinpad/read-yes-no-pinpad.service";
 import SetDisplayMessagePinpad from "./pinpad/set-display-message-pinpad.service";
 import CreateSession from "./session/create-session.service";
+import DeleteSession from "./session/delete-session.service";
+import GetSession from "./session/get-session.service";
 import ContinueTransaction from "./transaction/continue-transaction.service";
 import FinishTransaction from "./transaction/finish-transaction.service";
 import StartTransaction from "./transaction/start-transaction.service";
@@ -24,6 +24,8 @@ export class TefInstance {
   private continueTransaction: ContinueTransaction;
   private finishTransaction: FinishTransaction;
   private createSessionService: CreateSession;
+  private deleteSessionService: DeleteSession;
+  private getSessionService: GetSession;
   private openPinpadService: OpenPinpad;
   private closePinpadService: ClosePinpad;
   private isPresentPinpadService: IsPresentPinpad;
@@ -41,6 +43,8 @@ export class TefInstance {
     this.getStateService = new GetState();
     this.getVersionService = new GetVersion();
     this.createSessionService = new CreateSession();
+    this.deleteSessionService = new DeleteSession();
+    this.getSessionService = new GetSession();
     this.openPinpadService = new OpenPinpad();
     this.closePinpadService = new ClosePinpad();
     this.isPresentPinpadService = new IsPresentPinpad();
@@ -213,12 +217,23 @@ export class TefInstance {
     return await this.setDisplayMessagePinpadService.execute(sessionId || this.sessionId$!, message, persistent);
   } 
 
-  public async createSession() {
-    const session = await this.createSessionService.execute();
+  public async createSession(data: ICreateSession) {
+    const session = await this.createSessionService.execute(data);
     if (session?.sessionId) {
       this.sessionId$ = session.sessionId;
     }
     return session;
+  }
+
+  public async deleteSession() {
+    const res = await this.deleteSessionService.execute();
+    this.sessionId$ = null
+    return res;
+  }
+
+  public async getSession() {
+    const res = await this.getSessionService.execute();
+    return res;
   }
 
   // #endregion Estágios (5)
