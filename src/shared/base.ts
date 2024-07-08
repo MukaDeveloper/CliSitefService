@@ -8,8 +8,6 @@ export class BaseService {
 
   protected agenteUri: string;
 
-  public message$: ISendStatus | null = null;
-
   // #endregion Properties (5)
 
   // #region Constructors (1)

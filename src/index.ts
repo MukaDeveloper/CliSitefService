@@ -1,2 +1,2 @@
-export * from "./services/tef-service";
+export * from "./services/tef-instance";
 export * from "./interfaces";

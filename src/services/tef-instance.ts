@@ -1,7 +1,14 @@
 import { ICreateSession } from "../interfaces/i-create-session";
 import { IFinishTransaction } from "../interfaces/i-finish-transaction";
 import { ISendStatus } from "../interfaces/i-send-status";
-import { IStartTransaction, IStartTransactionResponse } from "../interfaces/i-start-transaction";
+import { ISession } from "../interfaces/i-session";
+import {
+  IStartTransaction,
+  IStartTransactionResponse,
+} from "../interfaces/i-start-transaction";
+import { ITransaction } from "../interfaces/i-transaction";
+import { BaseService } from "../shared/base";
+import { GlobalConfig } from "../shared/global";
 import GetState from "./general/get-state.service";
 import GetVersion from "./general/get-version.service";
 import ClosePinpad from "./pinpad/close-pinpad.service";
@@ -16,10 +23,9 @@ import ContinueTransaction from "./transaction/continue-transaction.service";
 import FinishTransaction from "./transaction/finish-transaction.service";
 import StartTransaction from "./transaction/start-transaction.service";
 
-export class TefInstance {
+export class TefInstance extends BaseService {
   // #region Properties (3)
 
-  public sessionId$: string | null = null;
   private startTransaction: StartTransaction;
   private continueTransaction: ContinueTransaction;
   private finishTransaction: FinishTransaction;
@@ -33,13 +39,18 @@ export class TefInstance {
   private setDisplayMessagePinpadService: SetDisplayMessagePinpad;
   private getVersionService: GetVersion;
   private getStateService: GetState;
-  private toCancel = false;
+  private session: ISession | null = null;
+  private transaction: ITransaction | null = null;
+  private status: string = "";
+  private log: string = "";
+  private question: string = "";
 
   // #endregion Properties (3)
 
   // #region Constructors (1)
 
   constructor() {
+    super();
     this.getStateService = new GetState();
     this.getVersionService = new GetVersion();
     this.createSessionService = new CreateSession();
@@ -53,6 +64,12 @@ export class TefInstance {
     this.startTransaction = new StartTransaction();
     this.continueTransaction = new ContinueTransaction();
     this.finishTransaction = new FinishTransaction();
+
+    GlobalConfig.session$.subscribe((res) => (this.session = res));
+    GlobalConfig.transaction$.subscribe((res) => (this.transaction = res));
+    GlobalConfig.status$.subscribe((res) => (this.status = res || ""));
+    GlobalConfig.log$.subscribe((res) => (this.log = res || ""));
+    GlobalConfig.question$.subscribe((res) => (this.question = res || ""));
   }
 
   // #endregion Constructors (1)
@@ -71,10 +88,13 @@ export class TefInstance {
     try {
       switch (state?.serviceState) {
         case 0:
-          return this.startTransaction.sendStatus(-1, "Agente não inicializado");
+          return this.startTransaction.sendStatus(
+            -1,
+            "Agente não inicializado"
+          );
         case 2:
         case 3:
-          return this.startTransaction.sendQuestion(state?.serviceState, "Já existe uma transação iniciada ou em andamento.\n1:Continuar;\n2:Cancelar");
+          break;
         case 4:
           await this.continueTransaction.sendFinished();
           break;
@@ -84,22 +104,17 @@ export class TefInstance {
 
       if (response?.clisitefStatus === 10000) {
         const section = {
-          sessionId: response?.sessionId,
+          sessionId: `${response?.sessionId}`,
           continue: "0",
-          cupomFiscal: data.taxInvoiceNumber,
-          dataFiscal: data.taxInvoiceDate,
-          horaFiscal: data.taxInvoiceTime,
+          data: "",
           ret: [],
-          functionalId: data.functionalId,
-          functionalType: data.functionalType,
         };
 
         /**
          * Alimenta as variáveis da instância continue.
          */
-        this.continueTransaction.transaction$ = data;
-        this.continueTransaction.section$ = section;
-        this.toCancel = false;
+        GlobalConfig.session$.next(section);
+        GlobalConfig.transaction$.next(data);
 
         /**
          * Continua com a transação.
@@ -125,14 +140,6 @@ export class TefInstance {
    * @description Continua com a transação
    */
   public async continue(data: string): Promise<unknown> {
-    if (this.toCancel) {
-      await this.continueTransaction.sendStatus(
-        0,
-        "Existia um pedido de cancelamento. O mesmo foi aceito."
-      );
-      this.toCancel = false;
-      return await this.continueTransaction.execute("0");
-    }
     return await this.continueTransaction.execute(data);
   }
 
@@ -140,7 +147,6 @@ export class TefInstance {
    * Finaliza uma transação
    */
   public async finish(data: IFinishTransaction) {
-    this.toCancel = false;
     return await this.finishTransaction.execute(data);
   }
 
@@ -149,11 +155,12 @@ export class TefInstance {
    * É necessário a confirmação - confirmCancel(true / false)
    */
   public async requestCancel() {
-    if (this.toCancel) {
-      return;
+    const data = {
+      sessionId: `${this.session?.sessionId}`,
+      data: "",
+      continue: "-1"
     }
-    this.toCancel = true;
-    this.continueTransaction.section$.continue = -1;
+    GlobalConfig.session$.next(data);
   }
 
   /**
@@ -162,7 +169,6 @@ export class TefInstance {
    * @description Cancela uma transação
    */
   public async confirmCancel(cancel: boolean) {
-    this.toCancel = false;
     if (cancel === true) {
       return await this.continue("0");
     } else {
@@ -183,51 +189,67 @@ export class TefInstance {
   }
 
   public async openPinpad(sessionId: string | null = null) {
-    if (!sessionId && !this.sessionId$) {
+    if (!sessionId && !this.session?.sessionId) {
       return { status: -1, message: "Não existe uma sessão ativa" };
     }
-    return await this.openPinpadService.execute(sessionId || this.sessionId$!);
+    return await this.openPinpadService.execute(sessionId || this.session?.sessionId!);
   }
 
   public async closePinpad(sessionId: string | null = null) {
-    if (!sessionId && !this.sessionId$) {
+    if (!sessionId && !this.session?.sessionId) {
       return { status: -1, message: "Não existe uma sessão ativa" };
     }
-    return await this.closePinpadService.execute(sessionId || this.sessionId$!);
+    return await this.closePinpadService.execute(sessionId || this.session?.sessionId!);
   }
 
   public async isPresentPinpad(sessionId: string | null = null) {
-    if (!sessionId && !this.sessionId$) {
+    if (!sessionId && !this.session?.sessionId) {
       return { status: -1, message: "Não existe uma sessão ativa" };
     }
-    return await this.isPresentPinpadService.execute(sessionId || this.sessionId$!);
+    return await this.isPresentPinpadService.execute(
+      sessionId || this.session?.sessionId!
+    );
   }
 
-  public async readYesNoPinpad(sessionId: string | null = null, message: string) {
-    if (!sessionId && !this.sessionId$) {
+  public async readYesNoPinpad(
+    sessionId: string | null = null,
+    message: string
+  ) {
+    if (!sessionId && !this.session?.sessionId) {
       return { status: -1, message: "Não existe uma sessão ativa" };
     }
-    return await this.readYesNoPinpadService.execute(sessionId || this.sessionId$!, message);
+    return await this.readYesNoPinpadService.execute(
+      sessionId || this.session?.sessionId!,
+      message
+    );
   }
 
-  public async setDisplayMessagePinpad(sessionId: string | null = null, message: string, persistent: string) {
-    if (!sessionId && !this.sessionId$) {
+  public async setDisplayMessagePinpad(
+    sessionId: string | null = null,
+    message: string,
+    persistent: string
+  ) {
+    if (!sessionId && !this.session?.sessionId) {
       return { status: -1, message: "Não existe uma sessão ativa" };
     }
-    return await this.setDisplayMessagePinpadService.execute(sessionId || this.sessionId$!, message, persistent);
-  } 
+    return await this.setDisplayMessagePinpadService.execute(
+      sessionId || this.session?.sessionId!,
+      message,
+      persistent
+    );
+  }
 
   public async createSession(data: ICreateSession) {
     const session = await this.createSessionService.execute(data);
     if (session?.sessionId) {
-      this.sessionId$ = session.sessionId;
+      this.session!.sessionId = session.sessionId;
     }
     return session;
   }
 
   public async deleteSession() {
     const res = await this.deleteSessionService.execute();
-    this.sessionId$ = null
+    GlobalConfig.session$.next(null);
     return res;
   }
 
@@ -244,7 +266,9 @@ export class TefInstance {
    *
    * Método responsável por receber as respostas de transações aprovadas
    */
-  public onApproved(callback: (data: { status: number, displayId: string}) => void) {
+  public onApproved(
+    callback: (data: { status: number; displayId: string }) => void
+  ) {
     this.continueTransaction.getApproved(callback);
   }
 
@@ -255,49 +279,23 @@ export class TefInstance {
    */
   public recieveStatus(callback: (status: ISendStatus) => void) {
     const pong = (status: ISendStatus) => {
-      if (
-        this.continueTransaction.message$ === null ||
-        this.continueTransaction.message$ !== status
-      ) {
-        this.continueTransaction.message$ = status;
+      if (this.status !== status.message) {
+        GlobalConfig.status$.next(status.message);
         callback(status);
       }
     };
+
     this.startTransaction.listenStatus(pong);
     this.continueTransaction.listenStatus(pong);
   }
 
   public recieveLogs(callback: (status: ISendStatus) => void) {
-    const pong = (status: ISendStatus) => {
-      if (
-        this.continueTransaction.message$ === null ||
-        this.continueTransaction.message$ !== status
-      ) {
-        this.continueTransaction.message$ = status;
-        callback(status);
-      }
-    };
-    this.continueTransaction.listenLogs(pong);
+    this.continueTransaction.listenLogs(callback);
   }
 
   public recieveQuestion(callback: (status: ISendStatus) => void) {
-    const pong = (status: ISendStatus) => {
-      if (
-        this.continueTransaction.message$ === null ||
-        this.continueTransaction.message$ !== status
-      ) {
-        this.continueTransaction.message$ = status;
-        callback(status);
-      } else if (
-        this.startTransaction.message$ === null ||
-        this.startTransaction.message$ !== status
-      ) {
-        this.startTransaction.message$ = status;
-        callback(status);
-      }
-    };
-    this.continueTransaction.listenQuestion(pong);
-    this.startTransaction.listenQuestion(pong);
+    this.continueTransaction.listenQuestion(callback);
+    this.startTransaction.listenQuestion(callback);
   }
 
   // #endregion Listeners (4)

@@ -5,12 +5,22 @@ import axios, { AxiosError } from "axios";
 import { Agent } from "https";
 import { BaseService } from "../../shared/base";
 import { IFinishTransaction } from "../../interfaces/i-finish-transaction";
+import { GlobalConfig } from "../../shared/global";
+import { ISession } from "../../interfaces/i-session";
+import { ITransaction } from "../../interfaces/i-transaction";
 
 export default class FinishTransaction extends BaseService {
   // #region Constructors (1)
 
+  private transaction: ITransaction | null = null;
+  private session: ISession | null = null;
+
+
   constructor() {
     super();
+
+    GlobalConfig.transaction$.subscribe((res) => this.transaction = res);
+    GlobalConfig.session$.subscribe((res) => this.session = res);
   }
 
   // #endregion Constructors (1)
@@ -24,8 +34,19 @@ export default class FinishTransaction extends BaseService {
    * @param transaction Informações da transação
    */
   public async execute(data: IFinishTransaction): Promise<any> {
-
     try {
+      if (!data) {
+        data = {
+          confirm: "1",
+          sessionId: this.session?.sessionId,
+          sitefIp: this.transaction?.sitefIp,
+          storeId: this.transaction?.storeId,
+          taxInvoiceDate: this.transaction?.taxInvoiceDate,
+          taxInvoiceNumber: this.transaction?.taxInvoiceNumber,
+          taxInvoiceTime: this.transaction?.taxInvoiceTime,
+          terminalId: this.transaction?.terminalId,
+        } as IFinishTransaction;
+      }
       const res = await axios.post<any>(
         this.agenteUri + "/finishTransaction",
         qs.stringify(data),
