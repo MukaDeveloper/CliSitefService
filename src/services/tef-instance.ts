@@ -35,6 +35,7 @@ export class TefInstance extends BaseService {
 	private log: string = "";
 	private openPinpadService: OpenPinpad;
 	private question: string = "";
+	private error: string = "";
 	private readYesNoPinpadService: ReadYesNoPinpad;
 	private session: ISession | null = null;
 	private setDisplayMessagePinpadService: SetDisplayMessagePinpad;
@@ -67,6 +68,7 @@ export class TefInstance extends BaseService {
 		GlobalConfig.status$.subscribe((res) => (this.status = res || ""));
 		GlobalConfig.log$.subscribe((res) => (this.log = res || ""));
 		GlobalConfig.question$.subscribe((res) => (this.question = res || ""));
+		GlobalConfig.error$.subscribe((res) => (this.error = res || ""));
 	}
 
 	// #endregion Constructors (1)
@@ -156,9 +158,16 @@ export class TefInstance extends BaseService {
 	}
 
 	public onError(callback: (status: ISendStatus) => void) {
-		this.continueTransaction.listenErrors(callback);
-		this.startTransaction.listenErrors(callback);
-		this.finishTransaction.listenErrors(callback);
+		const pong = (status: ISendStatus) => {
+			if (this.error !== status.message) {
+				GlobalConfig.error$.next(status.message);
+				callback(status);
+			}
+		};
+
+		this.continueTransaction.listenErrors(pong);
+		this.startTransaction.listenErrors(pong);
+		this.finishTransaction.listenErrors(pong);
 	}
 
 	public async openPinpad(sessionId: string | null = null) {
@@ -185,6 +194,11 @@ export class TefInstance extends BaseService {
 		this.continueTransaction.listenLogs(pong);
 	}
 
+	/**
+	 *
+	 * Método responsável por receber as perguntas do fluxo
+	 * de transação enviados pelo método "continue".
+	 */
 	public recieveQuestion(callback: (status: ISendStatus) => void) {
 		const pong = (status: ISendStatus) => {
 			if (this.question !== status.message) {
