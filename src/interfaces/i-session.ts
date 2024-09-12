@@ -1,6 +1,10 @@
 export interface ISession {
-    sessionId: string;
-    data: string;
+    // #region Properties (4)
+
     continue: string;
+    data: string;
     ret?: string[];
+    sessionId: string;
+
+    // #endregion Properties (4)
 }

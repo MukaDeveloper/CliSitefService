@@ -2,10 +2,7 @@ import { ICreateSession } from "../interfaces/i-create-session";
 import { IFinishTransaction } from "../interfaces/i-finish-transaction";
 import { ISendStatus } from "../interfaces/i-send-status";
 import { ISession } from "../interfaces/i-session";
-import {
-  IStartTransaction,
-  IStartTransactionResponse,
-} from "../interfaces/i-start-transaction";
+import { IStartTransaction, IStartTransactionResponse } from "../interfaces/i-start-transaction";
 import { ITransaction } from "../interfaces/i-transaction";
 import { BaseService } from "../shared/base";
 import { GlobalConfig } from "../shared/global";
@@ -24,279 +21,258 @@ import FinishTransaction from "./transaction/finish-transaction.service";
 import StartTransaction from "./transaction/start-transaction.service";
 
 export class TefInstance extends BaseService {
-  // #region Properties (3)
+	// #region Properties (18)
 
-  private startTransaction: StartTransaction;
-  private continueTransaction: ContinueTransaction;
-  private finishTransaction: FinishTransaction;
-  private createSessionService: CreateSession;
-  private deleteSessionService: DeleteSession;
-  private getSessionService: GetSession;
-  private openPinpadService: OpenPinpad;
-  private closePinpadService: ClosePinpad;
-  private isPresentPinpadService: IsPresentPinpad;
-  private readYesNoPinpadService: ReadYesNoPinpad;
-  private setDisplayMessagePinpadService: SetDisplayMessagePinpad;
-  private getVersionService: GetVersion;
-  private getStateService: GetState;
-  private session: ISession | null = null;
-  private transaction: ITransaction | null = null;
-  private status: string = "";
-  private log: string = "";
-  private question: string = "";
+	private closePinpadService: ClosePinpad;
+	private continueTransaction: ContinueTransaction;
+	private createSessionService: CreateSession;
+	private deleteSessionService: DeleteSession;
+	private finishTransaction: FinishTransaction;
+	private getSessionService: GetSession;
+	private getStateService: GetState;
+	private getVersionService: GetVersion;
+	private isPresentPinpadService: IsPresentPinpad;
+	private log: string = "";
+	private openPinpadService: OpenPinpad;
+	private question: string = "";
+	private readYesNoPinpadService: ReadYesNoPinpad;
+	private session: ISession | null = null;
+	private setDisplayMessagePinpadService: SetDisplayMessagePinpad;
+	private startTransaction: StartTransaction;
+	private status: string = "";
+	private transaction: ITransaction | null = null;
 
-  // #endregion Properties (3)
+	// #endregion Properties (18)
 
-  // #region Constructors (1)
+	// #region Constructors (1)
 
-  constructor() {
-    super();
-    this.getStateService = new GetState();
-    this.getVersionService = new GetVersion();
-    this.createSessionService = new CreateSession();
-    this.deleteSessionService = new DeleteSession();
-    this.getSessionService = new GetSession();
-    this.openPinpadService = new OpenPinpad();
-    this.closePinpadService = new ClosePinpad();
-    this.isPresentPinpadService = new IsPresentPinpad();
-    this.readYesNoPinpadService = new ReadYesNoPinpad();
-    this.setDisplayMessagePinpadService = new SetDisplayMessagePinpad();
-    this.startTransaction = new StartTransaction();
-    this.continueTransaction = new ContinueTransaction();
-    this.finishTransaction = new FinishTransaction();
+	constructor() {
+		super();
+		this.getStateService = new GetState();
+		this.getVersionService = new GetVersion();
+		this.createSessionService = new CreateSession();
+		this.deleteSessionService = new DeleteSession();
+		this.getSessionService = new GetSession();
+		this.openPinpadService = new OpenPinpad();
+		this.closePinpadService = new ClosePinpad();
+		this.isPresentPinpadService = new IsPresentPinpad();
+		this.readYesNoPinpadService = new ReadYesNoPinpad();
+		this.setDisplayMessagePinpadService = new SetDisplayMessagePinpad();
+		this.startTransaction = new StartTransaction();
+		this.continueTransaction = new ContinueTransaction();
+		this.finishTransaction = new FinishTransaction();
 
-    GlobalConfig.session$.subscribe((res) => (this.session = res));
-    GlobalConfig.transaction$.subscribe((res) => (this.transaction = res));
-    GlobalConfig.status$.subscribe((res) => (this.status = res || ""));
-    GlobalConfig.log$.subscribe((res) => (this.log = res || ""));
-    GlobalConfig.question$.subscribe((res) => (this.question = res || ""));
-  }
+		GlobalConfig.session$.subscribe((res) => (this.session = res));
+		GlobalConfig.transaction$.subscribe((res) => (this.transaction = res));
+		GlobalConfig.status$.subscribe((res) => (this.status = res || ""));
+		GlobalConfig.log$.subscribe((res) => (this.log = res || ""));
+		GlobalConfig.question$.subscribe((res) => (this.question = res || ""));
+	}
 
-  // #endregion Constructors (1)
+	// #endregion Constructors (1)
 
-  // #region Estágios (5)
+	// #region Public Methods (20)
 
-  /**
-   *
-   * @param data objeto enviado para iniciar a transação, interface IStartTransaction
-   * @description Inicia a transação com parâmetros de configuração
-   */
-  public async start(
-    data: IStartTransaction
-  ): Promise<IStartTransactionResponse | void> {
-    const state = await this.getState();
-    try {
-      switch (state?.serviceState) {
-        case 0:
-          return this.startTransaction.sendStatus(
-            -1,
-            "Agente não inicializado"
-          );
-        case 2:
-        case 3:
-          break;
-        case 4:
-          await this.continueTransaction.sendFinished();
-          break;
-      }
+	public async closePinpad(sessionId: string | null = null) {
+		if (!sessionId && !this.session?.sessionId) {
+			return { status: -1, message: "Não existe uma sessão ativa" };
+		}
+		return await this.closePinpadService.execute(sessionId || this.session?.sessionId!);
+	}
 
-      const response = await this.startTransaction.execute(data);
+	/**
+	 *
+	 * @param cancel Confirma o cancelamento da transaçaõ
+	 * @description Cancela uma transação
+	 */
+	public async confirmCancel(cancel: boolean) {
+		if (cancel === true) {
+			return await this.continue("0");
+		} else {
+			return await this.continue(`1`);
+		}
+	}
 
-      if (response?.clisitefStatus === 10000) {
-        const section = {
-          sessionId: `${response?.sessionId}`,
-          continue: "0",
-          data: "",
-          ret: [],
-        };
+	/**
+	 *
+	 * @param data Texto enviado para continuar a transação, normalmente vazio
+	 * @description Continua com a transação
+	 */
+	public async continue(data: string): Promise<unknown> {
+		return await this.continueTransaction.execute(data);
+	}
 
-        /**
-         * Alimenta as variáveis da instância continue.
-         */
-        GlobalConfig.session$.next(section);
-        GlobalConfig.transaction$.next(data);
+	public async createSession(data: ICreateSession) {
+		const session = await this.createSessionService.execute(data);
+		if (session?.sessionId) {
+			this.session!.sessionId = session.sessionId;
+		}
+		return session;
+	}
 
-        /**
-         * Continua com a transação.
-         */
-        await this.continue("");
-        return response;
-      } else {
-        throw new Error("Erro ao iniciar transação");
-      }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      return {
-        serviceStatus: 1,
-        serviceMessage: error?.message,
-        clisitefStatus: 0,
-      };
-    }
-  }
+	public async deleteSession() {
+		const res = await this.deleteSessionService.execute();
+		GlobalConfig.session$.next(null);
+		return res;
+	}
 
-  /**
-   *
-   * @param data Texto enviado para continuar a transação, normalmente vazio
-   * @description Continua com a transação
-   */
-  public async continue(data: string): Promise<unknown> {
-    return await this.continueTransaction.execute(data);
-  }
+	/**
+	 * Finaliza uma transação
+	 */
+	public async finish(data: IFinishTransaction) {
+		return await this.finishTransaction.execute(data);
+	}
 
-  /**
-   * Finaliza uma transação
-   */
-  public async finish(data: IFinishTransaction) {
-    return await this.finishTransaction.execute(data);
-  }
+	public async getSession() {
+		const res = await this.getSessionService.execute();
+		return res;
+	}
 
-  /**
-   * @description Requisita o cancelamento de uma transação
-   * É necessário a confirmação - confirmCancel(true / false)
-   */
-  public async requestCancel() {
-    const data = {
-      sessionId: `${this.session?.sessionId}`,
-      data: "",
-      continue: "-1"
-    }
-    GlobalConfig.session$.next(data);
-  }
+	/**
+	 *
+	 * @returns Retorna o estado atual do agente
+	 */
+	public async getState() {
+		return await this.getStateService.execute();
+	}
 
-  /**
-   *
-   * @param cancel Confirma o cancelamento da transaçaõ
-   * @description Cancela uma transação
-   */
-  public async confirmCancel(cancel: boolean) {
-    if (cancel === true) {
-      return await this.continue("0");
-    } else {
-      return await this.continue(`1`);
-    }
-  }
+	public async getVersion() {
+		return await this.getVersionService.execute();
+	}
 
-  /**
-   *
-   * @returns Retorna o estado atual do agente
-   */
-  public async getState() {
-    return await this.getStateService.execute();
-  }
+	public async isPresentPinpad(sessionId: string | null = null) {
+		if (!sessionId && !this.session?.sessionId) {
+			return { status: -1, message: "Não existe uma sessão ativa" };
+		}
+		return await this.isPresentPinpadService.execute(sessionId || this.session?.sessionId!);
+	}
 
-  public async getVersion() {
-    return await this.getVersionService.execute();
-  }
+	/**
+	 *
+	 * Método responsável por receber as respostas de transações aprovadas
+	 */
+	public onApproved(callback: (data: { status: number; displayId: string }) => void) {
+		this.continueTransaction.getApproved(callback);
+	}
 
-  public async openPinpad(sessionId: string | null = null) {
-    if (!sessionId && !this.session?.sessionId) {
-      return { status: -1, message: "Não existe uma sessão ativa" };
-    }
-    return await this.openPinpadService.execute(sessionId || this.session?.sessionId!);
-  }
+	public onError(callback: (status: ISendStatus) => void) {
+		this.continueTransaction.listenErrors(callback);
+		this.startTransaction.listenErrors(callback);
+		this.finishTransaction.listenErrors(callback);
+	}
 
-  public async closePinpad(sessionId: string | null = null) {
-    if (!sessionId && !this.session?.sessionId) {
-      return { status: -1, message: "Não existe uma sessão ativa" };
-    }
-    return await this.closePinpadService.execute(sessionId || this.session?.sessionId!);
-  }
+	public async openPinpad(sessionId: string | null = null) {
+		if (!sessionId && !this.session?.sessionId) {
+			return { status: -1, message: "Não existe uma sessão ativa" };
+		}
+		return await this.openPinpadService.execute(sessionId || this.session?.sessionId!);
+	}
 
-  public async isPresentPinpad(sessionId: string | null = null) {
-    if (!sessionId && !this.session?.sessionId) {
-      return { status: -1, message: "Não existe uma sessão ativa" };
-    }
-    return await this.isPresentPinpadService.execute(
-      sessionId || this.session?.sessionId!
-    );
-  }
+	public async readYesNoPinpad(sessionId: string | null = null, message: string) {
+		if (!sessionId && !this.session?.sessionId) {
+			return { status: -1, message: "Não existe uma sessão ativa" };
+		}
+		return await this.readYesNoPinpadService.execute(sessionId || this.session?.sessionId!, message);
+	}
 
-  public async readYesNoPinpad(
-    sessionId: string | null = null,
-    message: string
-  ) {
-    if (!sessionId && !this.session?.sessionId) {
-      return { status: -1, message: "Não existe uma sessão ativa" };
-    }
-    return await this.readYesNoPinpadService.execute(
-      sessionId || this.session?.sessionId!,
-      message
-    );
-  }
+	public recieveLogs(callback: (status: ISendStatus) => void) {
+		this.continueTransaction.listenLogs(callback);
+	}
 
-  public async setDisplayMessagePinpad(
-    sessionId: string | null = null,
-    message: string,
-    persistent: string
-  ) {
-    if (!sessionId && !this.session?.sessionId) {
-      return { status: -1, message: "Não existe uma sessão ativa" };
-    }
-    return await this.setDisplayMessagePinpadService.execute(
-      sessionId || this.session?.sessionId!,
-      message,
-      persistent
-    );
-  }
+	public recieveQuestion(callback: (status: ISendStatus) => void) {
+		this.continueTransaction.listenQuestion(callback);
+		this.startTransaction.listenQuestion(callback);
+	}
 
-  public async createSession(data: ICreateSession) {
-    const session = await this.createSessionService.execute(data);
-    if (session?.sessionId) {
-      this.session!.sessionId = session.sessionId;
-    }
-    return session;
-  }
+	/**
+	 *
+	 * Método responsável por receber as respostas dos eventos
+	 * enviados pelos métodos de transação.
+	 */
+	public recieveStatus(callback: (status: ISendStatus) => void) {
+		const pong = (status: ISendStatus) => {
+			if (this.status !== status.message) {
+				GlobalConfig.status$.next(status.message);
+				callback(status);
+			}
+		};
 
-  public async deleteSession() {
-    const res = await this.deleteSessionService.execute();
-    GlobalConfig.session$.next(null);
-    return res;
-  }
+		this.startTransaction.listenStatus(pong);
+		this.continueTransaction.listenStatus(pong);
+	}
 
-  public async getSession() {
-    const res = await this.getSessionService.execute();
-    return res;
-  }
+	/**
+	 * @description Requisita o cancelamento de uma transação
+	 * É necessário a confirmação - confirmCancel(true / false)
+	 */
+	public async requestCancel() {
+		const data = {
+			sessionId: `${this.session?.sessionId}`,
+			data: "",
+			continue: "-1",
+		};
+		GlobalConfig.session$.next(data);
+	}
 
-  // #endregion Estágios (5)
+	public async setDisplayMessagePinpad(sessionId: string | null = null, message: string, persistent: string) {
+		if (!sessionId && !this.session?.sessionId) {
+			return { status: -1, message: "Não existe uma sessão ativa" };
+		}
+		return await this.setDisplayMessagePinpadService.execute(sessionId || this.session?.sessionId!, message, persistent);
+	}
 
-  // #region Listeners (4)
+	/**
+	 *
+	 * @param data objeto enviado para iniciar a transação, interface IStartTransaction
+	 * @description Inicia a transação com parâmetros de configuração
+	 */
+	public async start(data: IStartTransaction): Promise<IStartTransactionResponse | void> {
+		const state = await this.getState();
+		try {
+			switch (state?.serviceState) {
+				case 0:
+					return this.startTransaction.sendStatus(-1, "Agente não inicializado");
+				case 2:
+				case 3:
+					break;
+				case 4:
+					await this.continueTransaction.sendFinished();
+					break;
+			}
 
-  /**
-   *
-   * Método responsável por receber as respostas de transações aprovadas
-   */
-  public onApproved(
-    callback: (data: { status: number; displayId: string }) => void
-  ) {
-    this.continueTransaction.getApproved(callback);
-  }
+			const response = await this.startTransaction.execute(data);
 
-  /**
-   *
-   * Método responsável por receber as respostas dos eventos
-   * enviados pelos métodos de transação.
-   */
-  public recieveStatus(callback: (status: ISendStatus) => void) {
-    const pong = (status: ISendStatus) => {
-      if (this.status !== status.message) {
-        GlobalConfig.status$.next(status.message);
-        callback(status);
-      }
-    };
+			if (response?.clisitefStatus === 10000) {
+				const section = {
+					sessionId: `${response?.sessionId}`,
+					continue: "0",
+					data: "",
+					ret: [],
+				};
 
-    this.startTransaction.listenStatus(pong);
-    this.continueTransaction.listenStatus(pong);
-  }
+				/**
+				 * Alimenta as variáveis da instância continue.
+				 */
+				GlobalConfig.session$.next(section);
+				GlobalConfig.transaction$.next(data);
 
-  public recieveLogs(callback: (status: ISendStatus) => void) {
-    this.continueTransaction.listenLogs(callback);
-  }
+				/**
+				 * Continua com a transação.
+				 */
+				await this.continue("");
+				return response;
+			} else {
+				throw new Error("Erro ao iniciar transação");
+			}
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} catch (error: any) {
+			return {
+				serviceStatus: 1,
+				serviceMessage: error?.message,
+				clisitefStatus: 0,
+			};
+		}
+	}
 
-  public recieveQuestion(callback: (status: ISendStatus) => void) {
-    this.continueTransaction.listenQuestion(callback);
-    this.startTransaction.listenQuestion(callback);
-  }
-
-  // #endregion Listeners (4)
+	// #endregion Public Methods (20)
 }

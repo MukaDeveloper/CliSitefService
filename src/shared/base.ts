@@ -2,13 +2,13 @@ import { EventEmitter } from "events";
 import { ISendStatus } from "../interfaces/i-send-status";
 
 export class BaseService {
-  // #region Properties (5)
+  // #region Properties (2)
 
   private emitter: EventEmitter;
 
   protected agenteUri: string;
 
-  // #endregion Properties (5)
+  // #endregion Properties (2)
 
   // #region Constructors (1)
 
@@ -19,38 +19,39 @@ export class BaseService {
 
   // #endregion Constructors (1)
 
-  // #region Approved (2)
-
-  public sendApproved(status: number, displayId: string) {
-    this.emitter.emit("transactionApproved", { status, displayId });
-  }
+  // #region Public Methods (10)
 
   public getApproved(callback: (data: { status: number, displayId: string}) => void) {
     this.emitter.on("transactionApproved", callback);
   }
-  
-  // #endregion Approved (2)
 
-  // #region Status (6)
-
-  public listenStatus(callback: (res: ISendStatus) => void) {
-    this.emitter.on("transactionStatus", callback);
-  }
-
-  public sendStatus(status: number, message: string) {
-    this.emitter.emit("transactionStatus", { status, message } as ISendStatus);
+  public listenErrors(callback: (res: ISendStatus) => void) {
+    this.emitter.on("transactionErrors", callback);
   }
 
   public listenLogs(callback: (res: ISendStatus) => void) {
     this.emitter.on("transactionLogs", callback);
   }
 
-  public sendLogs(status: number, message: string) {
-    this.emitter.emit("transactionLogs", { status, message } as ISendStatus);
-  }
-
   public listenQuestion(callback: (res: ISendStatus) => void) {
     this.emitter.on("transactionQuestion", callback);
+  }
+
+  public listenStatus(callback: (res: ISendStatus) => void) {
+    this.emitter.on("transactionStatus", callback);
+  }
+
+  public sendApproved(status: number, displayId: string) {
+    this.emitter.emit("transactionApproved", { status, displayId });
+  }
+
+  public sendError(status: number, message: string) {
+    if (message === "" || !message) return;
+    this.emitter.emit("transactionErrors", { status, message } as ISendStatus);
+  }
+
+  public sendLogs(status: number, message: string) {
+    this.emitter.emit("transactionLogs", { status, message } as ISendStatus);
   }
 
   public sendQuestion(status: number, message: string) {
@@ -58,5 +59,9 @@ export class BaseService {
     this.emitter.emit("transactionQuestion", { status, message } as ISendStatus);
   }
 
-  // #endregion Status (6)
+  public sendStatus(status: number, message: string) {
+    this.emitter.emit("transactionStatus", { status, message } as ISendStatus);
+  }
+
+  // #endregion Public Methods (10)
 }
