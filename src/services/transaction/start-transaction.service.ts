@@ -103,6 +103,7 @@ export default class StartTransaction extends BaseService {
 					message = `Erro ao iniciar transação: ${JSON.stringify(axiosError?.response.data)}`;
 					console.error(message);
 				}
+				this.sendError(axiosError?.status || error?.status || 500, axiosError?.message || error?.message || "Erro desconhecido");
 				return { serviceStatus: 1, serviceMessage: message, clisitefStatus: 0 };
 			} else if (axiosError?.request) {
 				console.error(`Nenhuma resposta do servidor ao iniciar transação: ${axiosError?.message}`);
