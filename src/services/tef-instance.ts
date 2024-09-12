@@ -176,12 +176,24 @@ export class TefInstance extends BaseService {
 	}
 
 	public recieveLogs(callback: (status: ISendStatus) => void) {
-		this.continueTransaction.listenLogs(callback);
+		const pong = (status: ISendStatus) => {
+			if (this.log !== status.message) {
+				GlobalConfig.question$.next(status.message);
+				callback(status);
+			}
+		};
+		this.continueTransaction.listenLogs(pong);
 	}
 
 	public recieveQuestion(callback: (status: ISendStatus) => void) {
-		this.continueTransaction.listenQuestion(callback);
-		this.startTransaction.listenQuestion(callback);
+		const pong = (status: ISendStatus) => {
+			if (this.question !== status.message) {
+				GlobalConfig.question$.next(status.message);
+				callback(status);
+			}
+		};
+		this.continueTransaction.listenQuestion(pong);
+		this.startTransaction.listenQuestion(pong);
 	}
 
 	/**

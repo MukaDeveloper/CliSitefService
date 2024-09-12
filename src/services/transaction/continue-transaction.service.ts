@@ -116,6 +116,17 @@ export default class ContinueTransaction extends BaseService {
 					case 34:
 					case 35:
 					case 38:
+						if (response.commandId === 21) {
+							if (response?.data.startsWith("1:Cheque;") && (this.transaction as any)?.functionalId) {
+								this.execute((this.transaction as any)?.functionalId);
+								return;
+							}
+
+							if (response?.data.startsWith("1:A Vista;") && (this.transaction as any)?.functionalType) {
+								this.execute((this.transaction as any)?.functionalType);
+								return;
+							}
+						}
 						return this.sendQuestion(response.commandId, response?.data);
 					default:
 						this.execute("");
